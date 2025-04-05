@@ -11,6 +11,8 @@ import {
   IconButton
 } from "@mui/material";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
+import { useDispatch, useSelector } from "react-redux";
+import { setCartCountFlag } from "./redux/cartSlice";
 
 const candleData = [
   { id: 1, name: "Lavender Bliss", price: "$25", image: "/images/i1.jpg" },
@@ -22,9 +24,43 @@ const candleData = [
 ];
 
 const ProductPage = () => {
-  const handleAddToCart = (candle) => {
-    console.log(`Added to cart: ${candle.name}`);
-  };
+  const dispatch= useDispatch();
+  const cartCountFlag= useSelector((state)=>state.cart.cartCountFlag);
+  const handleAddToCart = async (candle) => {
+      // Create a Redis value as a JSON string
+      const value = JSON.stringify({
+        quantity: 1,
+        price: candle.price.replace("$", ""),
+        image: candle.image,
+      });
+  
+      const payload = {
+        product: "cart_data",
+        tags: candle.name,
+        value: value,
+      };
+  
+      try {
+        const response = await fetch("http://localhost:9001/cart/query/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+        dispatch(setCartCountFlag(!cartCountFlag))
+  
+        if (!response.ok) {
+          throw new Error("Failed to add to cart");
+        }
+  
+        const data = await response.json();
+        console.log("✅ Added to cart:", data.message);
+  
+      } catch (error) {
+        console.error("❌ Error adding to cart:", error.message);
+      }
+    };
 
   return (
     <Box sx={{ p: 4, backgroundColor: "#fdfdfd", minHeight: "100vh" }}>

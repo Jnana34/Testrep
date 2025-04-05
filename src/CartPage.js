@@ -10,6 +10,7 @@ import {
   Button,
   TextField,
   CircularProgress,
+  Alert,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -19,10 +20,23 @@ import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
 
 const CartComponent = () => {
-  const dispatch= useDispatch();
-  const cartCountFlag= useSelector((state)=>state.cart.cartCountFlag);
+  const dispatch = useDispatch();
+  const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
+
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [proceedAlert, setProceedAlert] = useState(false);
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -54,7 +68,7 @@ const CartComponent = () => {
     };
 
     fetchCartItems();
-  }, []);
+  }, [cartCountFlag]);
 
   const updateCartItemInRedis = async (name, updatedData) => {
     try {
@@ -82,7 +96,7 @@ const CartComponent = () => {
           key: name,
         }),
       });
-      dispatch(setCartCountFlag(!cartCountFlag))
+      dispatch(setCartCountFlag(!cartCountFlag));
     } catch (error) {
       console.error("Failed to delete cart item:", error);
     }
@@ -150,12 +164,50 @@ const CartComponent = () => {
     0
   );
 
+  const handleProceed = () => {
+    if (cartItems.length === 0) {
+      setProceedAlert(true);
+      return;
+    }
+
+    setProceedAlert(false);
+
+    const options = {
+      key: "rzp_test_lsPQxI0eQgMdf5", // Replace with your Razorpay key
+      amount: totalPrice * 100, // in paisa
+      currency: "INR",
+      name: "Candle Store",
+      description: "Purchase from cart",
+      image: "https://yourlogo.url/logo.png",
+      handler: function (response) {
+        alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
+      },
+      prefill: {
+        name: "John Doe",
+        email: "john@example.com",
+        contact: "9999999999",
+      },
+      theme: {
+        color: "#1976d2",
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
+
   return (
     <Container maxWidth="lg">
       <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", display: "flex", alignItems: "center" }}>
         <ShoppingCartIcon sx={{ mr: 1 }} />
         My Cart ({cartItems.length})
       </Typography>
+
+      {proceedAlert && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Please add items to your cart before proceeding to pay.
+        </Alert>
+      )}
 
       {loading ? (
         <Box display="flex" justifyContent="center" mt={4}>
@@ -279,6 +331,7 @@ const CartComponent = () => {
                   color="primary"
                   fullWidth
                   sx={{ mt: 2, textTransform: "none" }}
+                  onClick={handleProceed}
                 >
                   Proceed to Buy
                 </Button>
