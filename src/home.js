@@ -12,9 +12,14 @@ import {
 } from "@mui/material";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import { useCart } from "./CartContext"; // Make sure to import this at the top
+import { useDispatch, useSelector } from "react-redux";
+import { setCartCountFlag } from "./redux/cartSlice";
 
 const Home = () => {
+  const dispatch= useDispatch();
+  const cartCountFlag= useSelector((state)=>state.cart.cartCountFlag);
   // Sample Candle Data
+
   const featuredCandles = [
     { id: 1, name: "Lavender Bliss", price: "$25", image: "/images/i1.jpg" },
     { id: 2, name: "Vanilla Harmony", price: "$30", image: "/images/i2.jpg" },
@@ -46,6 +51,7 @@ const Home = () => {
         },
         body: JSON.stringify(payload),
       });
+      dispatch(setCartCountFlag(!cartCountFlag))
 
       if (!response.ok) {
         throw new Error("Failed to add to cart");

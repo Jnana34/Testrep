@@ -15,8 +15,12 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import { useDispatch, useSelector } from "react-redux";
+import { setCartCountFlag } from "./redux/cartSlice";
 
 const CartComponent = () => {
+  const dispatch= useDispatch();
+  const cartCountFlag= useSelector((state)=>state.cart.cartCountFlag);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,6 +82,7 @@ const CartComponent = () => {
           key: name,
         }),
       });
+      dispatch(setCartCountFlag(!cartCountFlag))
     } catch (error) {
       console.error("Failed to delete cart item:", error);
     }

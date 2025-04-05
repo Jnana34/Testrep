@@ -24,14 +24,17 @@ import {
   Clear
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Header = () => {
+  const cartCountFlag= useSelector((state)=>state.cart.cartCountFlag)
   const [cartCount, setCartCount] = useState(0); // Updated default to 0
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const isMenuOpen = Boolean(anchorEl);
+  console.log(cartCountFlag,"cart flag");
 
   // ✅ Fetch cart count from Redis API
   useEffect(() => {
@@ -50,7 +53,7 @@ const Header = () => {
     };
 
     fetchCartData();
-  }, []);
+  }, [cartCountFlag]);
 
   const handleOnClickCart = () => {
     navigate("/cart");

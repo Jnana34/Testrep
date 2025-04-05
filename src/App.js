@@ -4,10 +4,11 @@ import Header from "./Header";
 import Home from "./home";
 import Cart from "./Cart";
 import Products from "./products";
-
+import { Provider } from "react-redux";
+import { store } from "./redux/store";
 const App = () => {
   return (
-    <>
+    <Provider store={store}>
       <Header />
       <Routes>
         <Route path="/" element={<Navigate to="/home" />} />
@@ -16,7 +17,7 @@ const App = () => {
         <Route path="/products" element={<Products />} />
         {/* Add more routes as needed */}
       </Routes>
-    </>
+    </Provider>
   );
 };
 
