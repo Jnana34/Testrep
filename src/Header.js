@@ -26,7 +26,7 @@ const Header = () => {
   const [searchText, setSearchText] = useState("");
   const isMenuOpen = Boolean(anchorEl);
 
-  const handleOnClickCart = (event) => {
+  const handleOnClickCart = () => {
     navigate("/cart");
   };
 
@@ -50,8 +50,16 @@ const Header = () => {
     setSearchText("");
   };
 
+  const handleSearchSubmit = () => {
+    if (searchText.trim()) {
+      console.log("Searching for:", searchText);
+      // Example navigation:
+      // navigate(`/search?q=${encodeURIComponent(searchText)}`);
+    }
+  };
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = () => {
       clearSearch();
     };
 
@@ -60,7 +68,6 @@ const Header = () => {
       if (isMenuOpen) handleUserMenuClose();
       if (drawerOpen) setDrawerOpen(false);
     };
-
 
     document.addEventListener("click", handleClickOutside);
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -74,28 +81,18 @@ const Header = () => {
   const handleOnClickHead = (item) => {
     switch (item) {
       case "Home":
-        console.log("Navigating to Home page");
-        // Add navigation logic
         navigate("/home");
         break;
       case "About":
-        console.log("Showing About section");
-        // Add About section logic
         navigate("/about");
         break;
       case "Services":
-        console.log("Displaying Services");
-        // Add Services logic
         navigate("/services");
         break;
       case "Contact":
-        console.log("Opening Contact form");
-        // Add Contact form logic
         navigate("/contact");
         break;
       case "Products":
-        console.log("Showing Products list");
-        // Add Products list logic
         navigate("/products");
         break;
       default:
@@ -106,7 +103,6 @@ const Header = () => {
   return (
     <AppBar position="static" sx={{ backgroundColor: "#4a148c" }}>
       <Toolbar sx={{ display: "flex", alignItems: "center", width: "100%" }}>
-        {/* Menu Icon (Mobile) */}
         <IconButton
           color="inherit"
           sx={{ display: { xs: "block", md: "none" }, mr: 2 }}
@@ -115,9 +111,7 @@ const Header = () => {
           <MenuIcon />
         </IconButton>
 
-        {/* Logo */}
         <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center" }}>
-          {/* Logo (SVG or Image) */}
           <Box component="span" sx={{ display: "flex", alignItems: "center" }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" style={{ fill: "white" }}>
               <path d="M17 14a5 5 0 0 0 2.71-.81L20 13a3.16 3.16 0 0 0 .45-.37l.21-.2a4.48 4.48 0 0 0 .48-.58l.06-.08a4.28 4.28 0 0 0 .41-.76 1.57 1.57 0 0 0 .09-.23 4.21 4.21 0 0 0 .2-.63l.06-.25A5.5 5.5 0 0 0 22 9V2l-3 3h-4l-3-3v7a5 5 0 0 0 5 5zm2-7a1 1 0 1 1-1 1 1 1 0 0 1 1-1zm-4 0a1 1 0 1 1-1 1 1 1 0 0 1 1-1z"></path>
@@ -126,24 +120,44 @@ const Header = () => {
           </Box>
         </Box>
 
-        {/* Desktop Menu */}
         <Box
           sx={{
             display: { xs: "none", md: "flex" },
             flex: 1,
-            justifyContent: "flex-start", // Align items towards the left
+            justifyContent: "flex-start",
             gap: 6,
-            ml: -50, // Move the items slightly to the left
+            ml: -50,
           }}
         >
           {["Home", "About", "Services", "Contact", "Products"].map((item, index) => (
-            <Typography key={`${item}-${index}`} variant="body1" onClick={() => handleOnClickHead(item)}>
+            <Typography
+              key={`${item}-${index}`}
+              variant="body1"
+              onClick={() => handleOnClickHead(item)}
+              sx={{
+                color: "white",
+                cursor: "pointer",
+                position: "relative",
+                fontWeight: 500,
+                "&:hover": {
+                  color: "#ffcc80",
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    bottom: -2,
+                    left: 0,
+                    width: "100%",
+                    height: "2px",
+                    backgroundColor: "#ffcc80",
+                  },
+                },
+              }}
+            >
               {item}
             </Typography>
           ))}
         </Box>
 
-        {/* Search, Cart & User Icon */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, mr: 4 }}>
           <Box
             sx={{
@@ -156,34 +170,47 @@ const Header = () => {
               position: "relative",
               width: "250px",
             }}
-            onClick={(e) => e.stopPropagation()} // Prevent click from clearing input
+            onClick={(e) => e.stopPropagation()}
           >
             <Search sx={{ color: "#1976d2" }} />
             <InputBase
               placeholder="Search…"
               value={searchText}
               onChange={handleSearchChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSearchSubmit();
+                }
+              }}
               sx={{ flex: 1, color: "white" }}
             />
             {searchText && (
-              <IconButton
-                size="small"
-                onClick={clearSearch}
-                sx={{ color: "white", padding: "4px" }}
-              >
-                <Clear fontSize="small" />
-              </IconButton>
+              <>
+                <IconButton
+                  size="small"
+                  onClick={handleSearchSubmit}
+                  sx={{ color: "#1976d2", padding: "4px" }}
+                >
+                  <Search fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={clearSearch}
+                  sx={{ color: "white", padding: "4px" }}
+                >
+                  <Clear fontSize="small" />
+                </IconButton>
+              </>
             )}
           </Box>
 
-          {/* Cart Icon with Badge */}
           <IconButton color="inherit" onClick={handleOnClickCart}>
             <Badge badgeContent={cartCount} color="error">
               <ShoppingCart />
             </Badge>
           </IconButton>
 
-          {/* User Icon with Menu */}
           <IconButton color="inherit" onClick={handleUserMenuOpen}>
             <AccountCircle />
           </IconButton>
@@ -209,7 +236,6 @@ const Header = () => {
         </Box>
       </Toolbar>
 
-      {/* Mobile Drawer */}
       <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
         <Box
           sx={{
@@ -217,7 +243,7 @@ const Header = () => {
             background: "rgba(0, 0, 0, 0.4)",
             backdropFilter: "blur(15px)",
             height: "100vh",
-            paddingTop: 2
+            paddingTop: 2,
           }}
         >
           <IconButton sx={{ ml: "auto", display: "block", color: "white" }} onClick={toggleDrawer(false)}>
@@ -226,11 +252,18 @@ const Header = () => {
           <List>
             {["Home", "About", "Services", "Contact", "Products"].map((text, index) => (
               <React.Fragment key={`${text}-${index}`}>
-                <ListItem button onClick={() => { handleOnClickHead(text); toggleDrawer(false)(); }} sx={{ px: 3 }}>
+                <ListItem
+                  button
+                  onClick={() => {
+                    handleOnClickHead(text);
+                    toggleDrawer(false)();
+                  }}
+                  sx={{ px: 3 }}
+                >
                   <ListItemText
                     primary={text}
                     primaryTypographyProps={{
-                      sx: { fontSize: "1.1rem", fontWeight: 500, color: "#fff" }
+                      sx: { fontSize: "1.1rem", fontWeight: 500, color: "#fff" },
                     }}
                   />
                 </ListItem>
@@ -238,7 +271,6 @@ const Header = () => {
               </React.Fragment>
             ))}
           </List>
-
         </Box>
       </Drawer>
     </AppBar>
@@ -246,4 +278,3 @@ const Header = () => {
 };
 
 export default Header;
-
