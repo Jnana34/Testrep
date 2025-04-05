@@ -22,36 +22,43 @@ const Home = () => {
     { id: 4, name: "Citrus Glow", price: "$26", image: "/images/i4.jpg" },
   ];
 
-const { refreshCart } = useCart(); // Use the cart context
+  const { refreshCart } = useCart(); // Use the cart context
 
-const handleAddToCart = async (candle) => {
-  const payload = {
-    product: "cart_data",
-    tags: candle.name,
-    value: `1:${candle.price.replace("$", "")}`,
-  };
-
-  try {
-    const response = await fetch("http://localhost:9001/cart/query/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+  const handleAddToCart = async (candle) => {
+    // Create a Redis value as a JSON string
+    const value = JSON.stringify({
+      quantity: 1,
+      price: candle.price.replace("$", ""),
+      image: candle.image,
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to add to cart");
+    const payload = {
+      product: "cart_data",
+      tags: candle.name,
+      value: value,
+    };
+
+    try {
+      const response = await fetch("http://localhost:9001/cart/query/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add to cart");
+      }
+
+      const data = await response.json();
+      console.log("✅ Added to cart:", data.message);
+
+      refreshCart(); // ✅ Update the cart count in the header
+    } catch (error) {
+      console.error("❌ Error adding to cart:", error.message);
     }
-
-    const data = await response.json();
-    console.log("✅ Added to cart:", data.message);
-
-    refreshCart(); // ✅ Update the cart count in the header
-  } catch (error) {
-    console.error("❌ Error adding to cart:", error.message);
-  }
-};
+  };
 
   return (
     <Box sx={{ width: "100%", overflowX: "hidden" }}>
