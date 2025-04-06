@@ -11,6 +11,9 @@ import {
   TextField,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -18,6 +21,7 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
+import { QRCodeCanvas } from "qrcode.react";
 
 const CartComponent = () => {
   const dispatch = useDispatch();
@@ -26,17 +30,8 @@ const CartComponent = () => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [proceedAlert, setProceedAlert] = useState(false);
-
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -102,6 +97,16 @@ const CartComponent = () => {
     }
   };
 
+  const clearCartInRedis = async () => {
+    try {
+      for (const item of cartItems) {
+        await deleteCartItemFromRedis(item.name);
+      }
+    } catch (err) {
+      console.error("Failed to clear cart:", err);
+    }
+  };
+
   const handleRemove = (id) => {
     const itemToRemove = cartItems.find((item) => item.id === id);
     if (itemToRemove) {
@@ -164,36 +169,47 @@ const CartComponent = () => {
     0
   );
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (cartItems.length === 0) {
       setProceedAlert(true);
       return;
     }
 
     setProceedAlert(false);
+    setPaymentDialogOpen(true);
 
-    const options = {
-      key: "rzp_test_lsPQxI0eQgMdf5", // Replace with your Razorpay key
-      amount: totalPrice * 100, // in paisa
-      currency: "INR",
-      name: "Candle Store",
-      description: "Purchase from cart",
-      image: "https://yourlogo.url/logo.png",
-      handler: function (response) {
-        alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
-      },
-      prefill: {
-        name: "John Doe",
-        email: "john@example.com",
-        contact: "9999999999",
-      },
-      theme: {
-        color: "#1976d2",
-      },
+    const timeout = 5 * 60 * 1000;
+    const interval = 5000;
+    const start = Date.now();
+
+    const pollForConfirmation = async () => {
+      const elapsed = Date.now() - start;
+      if (elapsed >= timeout) {
+        setPaymentDialogOpen(false);
+        alert("Payment not confirmed in time.");
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:9001/paymentConfirmation");
+        const result = await res.json();
+
+        if (result.status === "success") {
+          setPaymentDialogOpen(false);
+          setOrderPlaced(true);
+          await clearCartInRedis();
+          setCartItems([]);
+          dispatch(setCartCountFlag(!cartCountFlag));
+          return;
+        }
+      } catch (err) {
+        console.error("Error polling payment confirmation:", err);
+      }
+
+      setTimeout(pollForConfirmation, interval);
     };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+    pollForConfirmation();
   };
 
   return (
@@ -206,6 +222,12 @@ const CartComponent = () => {
       {proceedAlert && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           Please add items to your cart before proceeding to pay.
+        </Alert>
+      )}
+
+      {orderPlaced && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          ✅ Payment confirmed! Your order has been placed.
         </Alert>
       )}
 
@@ -297,7 +319,7 @@ const CartComponent = () => {
               ))
             )}
           </Grid>
-
+          {cartItems.length > 0 && (
           <Grid item xs={12} md={4}>
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
               <Card sx={{ p: 3, boxShadow: 3, width: "350px", position: "sticky", top: "80px" }}>
@@ -337,9 +359,27 @@ const CartComponent = () => {
                 </Button>
               </Card>
             </Box>
-          </Grid>
+          </Grid>)}
         </Grid>
       )}
+
+      <Dialog open={paymentDialogOpen}>
+        <DialogTitle>Scan QR to Pay</DialogTitle>
+        <DialogContent>
+          <Typography>Scan this UPI QR using PhonePe, GPay, or any UPI app:</Typography>
+          <Box display="flex" justifyContent="center" my={2}>
+            <QRCodeCanvas
+              value={`upi://pay?pa=6370610827@ybl&pn=Your Store&am=${totalPrice}&cu=INR`}
+              size={220}
+              level="H"
+              includeMargin={true}
+            />
+          </Box>
+          <Typography align="center" fontSize={12}>
+            Waiting for payment confirmation (up to 5 minutes)...
+          </Typography>
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 };
