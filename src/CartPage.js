@@ -178,6 +178,17 @@ const CartComponent = () => {
     setProceedAlert(false);
     setPaymentDialogOpen(true);
 
+    // 🔁 Trigger the backend to start listening for payment
+    try {
+      await fetch("http://localhost:9001/paymentConfirmation/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: totalPrice }), // optional payload
+      });
+    } catch (error) {
+      console.error("Failed to trigger payment confirmation:", error);
+    }
+
     const timeout = 5 * 60 * 1000;
     const interval = 5000;
     const start = Date.now();
@@ -191,8 +202,10 @@ const CartComponent = () => {
       }
 
       try {
+        console.log("Polling for payment confirmation...");
         const res = await fetch("http://localhost:9001/paymentConfirmation");
         const result = await res.json();
+        console.log("Response from server:", result);
 
         if (result.status === "success") {
           setPaymentDialogOpen(false);
@@ -320,46 +333,47 @@ const CartComponent = () => {
             )}
           </Grid>
           {cartItems.length > 0 && (
-          <Grid item xs={12} md={4}>
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-              <Card sx={{ p: 3, boxShadow: 3, width: "350px", position: "sticky", top: "80px" }}>
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                  Price Details
-                </Typography>
-                <Divider sx={{ my: 1 }} />
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body1">Subtotal</Typography>
-                  <Typography variant="body1">${totalPrice + totalDiscount}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body1" color="success.main">
-                    Discount Applied
-                  </Typography>
-                  <Typography variant="body1" color="success.main">
-                    -${totalDiscount}
-                  </Typography>
-                </Box>
-                <Divider sx={{ my: 1 }} />
-                <Box display="flex" justifyContent="space-between">
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                <Card sx={{ p: 3, boxShadow: 3, width: "350px", position: "sticky", top: "80px" }}>
                   <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                    Total Amount
+                    Price Details
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                    ${totalPrice}
-                  </Typography>
-                </Box>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  sx={{ mt: 2, textTransform: "none" }}
-                  onClick={handleProceed}
-                >
-                  Proceed to Buy
-                </Button>
-              </Card>
-            </Box>
-          </Grid>)}
+                  <Divider sx={{ my: 1 }} />
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body1">Subtotal</Typography>
+                    <Typography variant="body1">${totalPrice + totalDiscount}</Typography>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body1" color="success.main">
+                      Discount Applied
+                    </Typography>
+                    <Typography variant="body1" color="success.main">
+                      -${totalDiscount}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                      Total Amount
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                      ${totalPrice}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    sx={{ mt: 2, textTransform: "none" }}
+                    onClick={handleProceed}
+                  >
+                    Proceed to Buy
+                  </Button>
+                </Card>
+              </Box>
+            </Grid>
+          )}
         </Grid>
       )}
 
