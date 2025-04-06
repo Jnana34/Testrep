@@ -24,6 +24,7 @@ import { setCartCountFlag } from "./redux/cartSlice";
 import { QRCodeCanvas } from "qrcode.react";
 
 const CartComponent = () => {
+  const token = localStorage.getItem("access_token");
   const dispatch = useDispatch();
   const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
 
@@ -36,7 +37,13 @@ const CartComponent = () => {
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
-        const response = await fetch("http://localhost:9001/cart/query/?hashmap=cart_data");
+        const response = await fetch("http://localhost:9001/cart/query/?hashmap=cart_data", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
         const result = await response.json();
         const data = result.data || {};
 
@@ -67,9 +74,12 @@ const CartComponent = () => {
 
   const updateCartItemInRedis = async (name, updatedData) => {
     try {
-      await fetch("http://localhost:9001/cart/update", {
+      await fetch("http://localhost:9001/cart/update/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           hashmap: "cart_data",
           key: name,
@@ -83,9 +93,12 @@ const CartComponent = () => {
 
   const deleteCartItemFromRedis = async (name) => {
     try {
-      await fetch("http://localhost:9001/cart/delete", {
+      await fetch("http://localhost:9001/cart/delete/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           hashmap: "cart_data",
           key: name,
@@ -181,8 +194,11 @@ const CartComponent = () => {
     // 🔁 Trigger the backend to start listening for payment
     try {
       await fetch("http://localhost:9001/paymentConfirmation/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ amount: totalPrice }), // optional payload
       });
     } catch (error) {
@@ -203,7 +219,13 @@ const CartComponent = () => {
 
       try {
         console.log("Polling for payment confirmation...");
-        const res = await fetch("http://localhost:9001/paymentConfirmation");
+        const res = await fetch("http://localhost:9001/paymentConfirmation/", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
         const result = await res.json();
         console.log("Response from server:", result);
 

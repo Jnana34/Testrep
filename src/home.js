@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Typography,
@@ -11,14 +11,24 @@ import {
   IconButton,
 } from "@mui/material";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
-import { useCart } from "./CartContext"; // Make sure to import this at the top
+import { useCart } from "./CartContext";
 import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
+import { useNavigate } from "react-router-dom";
 
 const Home = () => {
-  const dispatch= useDispatch();
-  const cartCountFlag= useSelector((state)=>state.cart.cartCountFlag);
-  // Sample Candle Data
+  const token = localStorage.getItem("access_token");
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
+
+  const { refreshCart } = useCart();
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login"); // 👈 Redirect to login if no token found
+    }
+  }, [token, navigate]);
 
   const featuredCandles = [
     { id: 1, name: "Lavender Bliss", price: "$25", image: "/images/i1.jpg" },
@@ -27,10 +37,7 @@ const Home = () => {
     { id: 4, name: "Citrus Glow", price: "$26", image: "/images/i4.jpg" },
   ];
 
-  const { refreshCart } = useCart(); // Use the cart context
-
   const handleAddToCart = async (candle) => {
-    // Create a Redis value as a JSON string
     const value = JSON.stringify({
       quantity: 1,
       price: candle.price.replace("$", ""),
@@ -47,11 +54,13 @@ const Home = () => {
       const response = await fetch("http://localhost:9001/cart/query/", {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       });
-      dispatch(setCartCountFlag(!cartCountFlag))
+
+      dispatch(setCartCountFlag(!cartCountFlag));
 
       if (!response.ok) {
         throw new Error("Failed to add to cart");
@@ -59,8 +68,7 @@ const Home = () => {
 
       const data = await response.json();
       console.log("✅ Added to cart:", data.message);
-
-      refreshCart(); // ✅ Update the cart count in the header
+      refreshCart();
     } catch (error) {
       console.error("❌ Error adding to cart:", error.message);
     }
@@ -117,7 +125,7 @@ const Home = () => {
         </Typography>
       </Container>
 
-      {/* Categories Section */}
+      {/* Categories */}
       <Box sx={{ textAlign: "center", my: 5 }}>
         <Typography variant="h4" fontWeight="bold">Shop by Category</Typography>
         <Box
@@ -138,7 +146,7 @@ const Home = () => {
         </Box>
       </Box>
 
-      {/* Featured Candles Section */}
+      {/* Featured Candles */}
       <Box sx={{ textAlign: "center", my: 5 }}>
         <Typography variant="h4" fontWeight="bold">Featured Candles</Typography>
         <Grid container spacing={3} sx={{ mt: 3, justifyContent: "center" }}>
@@ -153,7 +161,6 @@ const Home = () => {
                   flexDirection: "column",
                 }}
               >
-                {/* Image */}
                 <Box
                   sx={{
                     width: "100%",
@@ -172,7 +179,6 @@ const Home = () => {
                   />
                 </Box>
 
-                {/* Content */}
                 <CardContent
                   sx={{
                     flexGrow: 1,
@@ -192,7 +198,6 @@ const Home = () => {
                     {candle.price}
                   </Typography>
 
-                  {/* Buttons */}
                   <Box
                     sx={{
                       display: "flex",

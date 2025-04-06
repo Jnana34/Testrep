@@ -24,6 +24,7 @@ const candleData = [
 ];
 
 const ProductPage = () => {
+  const token = localStorage.getItem("access_token");
   const dispatch= useDispatch();
   const cartCountFlag= useSelector((state)=>state.cart.cartCountFlag);
   const handleAddToCart = async (candle) => {
@@ -44,6 +45,7 @@ const ProductPage = () => {
         const response = await fetch("http://localhost:9001/cart/query/", {
           method: "POST",
           headers: {
+            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(payload),
