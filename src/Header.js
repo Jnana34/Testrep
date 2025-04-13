@@ -39,7 +39,7 @@ const Header = ({ onLogout }) => {
   useEffect(() => {
     const fetchCartData = async () => {
       try {
-        const response = await fetch("http://localhost:9001/cart/query/?hashmap=cart_data", {
+        const response = await fetch("http://django-app-service:9001/cart/query/?hashmap=cart_data", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,

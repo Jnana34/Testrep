@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   Container,
   Paper,
@@ -23,6 +23,13 @@ const LoginPage = ({ onLoginSuccess }) => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  useEffect(() => {
+    fetch('/config.json')
+      .then(res => res.json())
+      .then(config => {
+        console.log('Loaded config:', config);
+      });
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -30,7 +37,7 @@ const LoginPage = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:9001/api/token/", {
+      const response = await fetch(`http://django-app-service:9001/api/token/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

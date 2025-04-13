@@ -37,7 +37,7 @@ const RegisterPage = () => {
     setSuccessMessage("");
 
     try {
-      const response = await fetch("http://localhost:9001/register/", {
+      const response = await fetch("http://django-app-service:9001/register/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
