@@ -51,7 +51,7 @@ const Home = () => {
     };
 
     try {
-      const response = await fetch("http://django-app-service:9001/cart/query/", {
+      const response = await fetch("https://sangsdemos.in/api/cart/query/", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

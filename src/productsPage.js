@@ -42,7 +42,7 @@ const ProductPage = () => {
       };
   
       try {
-        const response = await fetch("http://django-app-service:9001/cart/query/", {
+        const response = await fetch("http://localhost:9001/cart/query/", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token}`,

@@ -37,7 +37,7 @@ const CartComponent = () => {
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
-        const response = await fetch("http://django-app-service:9001/cart/query/?hashmap=cart_data", {
+        const response = await fetch("https://sangsdemos.in/api/cart/query/?hashmap=cart_data", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -74,7 +74,7 @@ const CartComponent = () => {
 
   const updateCartItemInRedis = async (name, updatedData) => {
     try {
-      await fetch("http://django-app-service:9001/cart/update/", {
+      await fetch("https://sangsdemos.in/cart/update/", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -93,7 +93,7 @@ const CartComponent = () => {
 
   const deleteCartItemFromRedis = async (name) => {
     try {
-      await fetch("http://django-app-service:9001/cart/delete/", {
+      await fetch("https://sangsdemos.in/api/cart/delete/", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -193,7 +193,7 @@ const CartComponent = () => {
 
     // 🔁 Trigger the backend to start listening for payment
     try {
-      await fetch("http://django-app-service:9001/paymentConfirmation/", {
+      await fetch("https://sangsdemos.in/api/paymentConfirmation/", {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -219,7 +219,7 @@ const CartComponent = () => {
 
       try {
         console.log("Polling for payment confirmation...");
-        const res = await fetch("http://django-app-service:9001/paymentConfirmation/", {
+        const res = await fetch("https://sangsdemos.in/api/paymentConfirmation/", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,

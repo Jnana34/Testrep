@@ -22,7 +22,7 @@ const ForgotPasswordPage = () => {
     setError("");
 
     try {
-      const response = await fetch("http://django-app-service:9001/forgot-password/", {
+      const response = await fetch("http://localhost:9001/forgot-password/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: emailOrUsername }),

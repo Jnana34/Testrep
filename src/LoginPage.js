@@ -37,7 +37,7 @@ const LoginPage = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://django-app-service:9001/api/token/`, {
+      const response = await fetch("https://sangsdemos.in/api/api/token/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
