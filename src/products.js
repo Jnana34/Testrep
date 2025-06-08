@@ -8,7 +8,6 @@ const Products = () => {
     <>
     <div>
       <ProductsPage/>
-      <Footer/>
     </div>
     </>
   );

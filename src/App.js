@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Header from "./Header";
+import Footer from "./Footer";
 import Home from "./home";
 import Cart from "./Cart";
 import Products from "./products";
@@ -30,7 +31,9 @@ const AppWrapper = () => {
   };
 
   const hideHeaderOnRoutes = ["/login", "/register", "/forgot-password"];
+  const hideFoooterOnRoutes = ["/login", "/register", "/forgot-password"];
   const shouldShowHeader = !hideHeaderOnRoutes.includes(location.pathname);
+  const shouldShowFooter = !hideFoooterOnRoutes.includes(location.pathname);
 
   return (
     <>
@@ -59,6 +62,7 @@ const AppWrapper = () => {
           element={isAuthenticated ? <Products /> : <Navigate to="/login" replace />}
         />
       </Routes>
+      {shouldShowFooter && <Footer />}
     </>
   );
 };
