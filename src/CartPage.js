@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import config from "./config/config";
 import {
   Container,
   Typography,
@@ -11,9 +12,6 @@ import {
   TextField,
   CircularProgress,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -21,10 +19,15 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
-import { QRCodeCanvas } from "qrcode.react";
 
 const CartComponent = () => {
   const token = localStorage.getItem("access_token");
+  const formatRupees = (amount) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(amount);
   const dispatch = useDispatch();
   const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
 
@@ -33,11 +36,12 @@ const CartComponent = () => {
   const [proceedAlert, setProceedAlert] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState(null);
 
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
-        const response = await fetch("https://sangsdemos.in/api/cart/query/?hashmap=cart_data", {
+        const response = await fetch(`${config.API_URL}cart/query/?hashmap=cart_data`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -68,13 +72,30 @@ const CartComponent = () => {
         setLoading(false);
       }
     };
-
+    const fetchAddress = async () => {
+      try {
+        const response = await fetch(`${config.API_URL}fetchaddress/?user_id=13`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setDeliveryAddress(data[0]); // Use first address
+        }
+      } catch (error) {
+        console.error("Failed to fetch address:", error);
+      }
+    };
+    fetchAddress();
     fetchCartItems();
   }, [cartCountFlag]);
 
   const updateCartItemInRedis = async (name, updatedData) => {
     try {
-      await fetch("https://sangsdemos.in/cart/update/", {
+      await fetch(`${config.API_URL}cart/update/`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -93,7 +114,7 @@ const CartComponent = () => {
 
   const deleteCartItemFromRedis = async (name) => {
     try {
-      await fetch("https://sangsdemos.in/api/cart/delete/", {
+      await fetch(`${config.API_URL}cart/delete/`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -182,70 +203,62 @@ const CartComponent = () => {
     0
   );
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleProceed = async () => {
     if (cartItems.length === 0) {
       setProceedAlert(true);
       return;
     }
 
-    setProceedAlert(false);
-    setPaymentDialogOpen(true);
-
-    // 🔁 Trigger the backend to start listening for payment
-    try {
-      await fetch("https://sangsdemos.in/api/paymentConfirmation/", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ amount: totalPrice }), // optional payload
-      });
-    } catch (error) {
-      console.error("Failed to trigger payment confirmation:", error);
+    const res = await loadRazorpayScript();
+    if (!res) {
+      alert("Failed to load Razorpay SDK. Check your connection.");
+      return;
     }
 
-    const timeout = 5 * 60 * 1000;
-    const interval = 5000;
-    const start = Date.now();
-
-    const pollForConfirmation = async () => {
-      const elapsed = Date.now() - start;
-      if (elapsed >= timeout) {
-        setPaymentDialogOpen(false);
-        alert("Payment not confirmed in time.");
-        return;
-      }
-
-      try {
-        console.log("Polling for payment confirmation...");
-        const res = await fetch("https://sangsdemos.in/api/paymentConfirmation/", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        const result = await res.json();
-        console.log("Response from server:", result);
-
-        if (result.status === "success") {
-          setPaymentDialogOpen(false);
-          setOrderPlaced(true);
-          await clearCartInRedis();
-          setCartItems([]);
-          dispatch(setCartCountFlag(!cartCountFlag));
-          return;
-        }
-      } catch (err) {
-        console.error("Error polling payment confirmation:", err);
-      }
-
-      setTimeout(pollForConfirmation, interval);
+    const options = {
+      key: "rzp_test_lsPQxI0eQgMdf5", // Replace with your Razorpay key
+      amount: totalPrice * 100, // in paise
+      currency: "INR",
+      name: "Your Store",
+      description: "Order Payment",
+      image: "https://yourlogo.url/logo.png", // optional
+      handler: async function (response) {
+        alert("Payment successful. Payment ID: " + response.razorpay_payment_id);
+        await clearCartInRedis();
+        setCartItems([]);
+        dispatch(setCartCountFlag(!cartCountFlag));
+        setOrderPlaced(true);
+      },
+      prefill: {
+        name: "Jnana Das",
+        email: "jnanaranjan27@gmail.com",
+        contact: "+916370610827",
+      },
+      notes: {
+        address: "Bangalore, 560034, India",
+      },
+      theme: {
+        color: "#1976d2",
+      },
     };
 
-    pollForConfirmation();
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+
+    setProceedAlert(false);
+    setPaymentDialogOpen(true);
   };
+
 
   return (
     <Container maxWidth="lg">
@@ -307,10 +320,10 @@ const CartComponent = () => {
                         <Typography variant="body2" color="textSecondary">Seller: {item.seller}</Typography>
                         <Typography variant="body2" color="textSecondary">Delivery in {item.delivery}</Typography>
                         <Typography variant="body2" color="error">
-                          <s>${item.price}</s> <b>${item.price - item.discount}</b>
+                          <s>{formatRupees(item.price)}</s> <b>{formatRupees(item.price - item.discount)}</b>
                         </Typography>
                         <Typography variant="body2" color="success.main">
-                          You save: ${item.discount}
+                          You save: {formatRupees(item.discount)}
                         </Typography>
                       </Box>
 
@@ -358,20 +371,38 @@ const CartComponent = () => {
             <Grid item xs={12} md={4}>
               <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                 <Card sx={{ p: 3, boxShadow: 3, width: "350px", position: "sticky", top: "80px" }}>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
+                    Delivery Address
+                  </Typography>
+                  <Box sx={{ mb: 3, p: 2, border: "1px solid", borderColor: "grey.300", borderRadius: 1 }}>
+                    <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                      {deliveryAddress?.full_name || "Name not provided"}
+                    </Typography>
+                    <Typography variant="body2">
+                      {deliveryAddress
+                        ? `${deliveryAddress.address_line1}, ${deliveryAddress.city}, ${deliveryAddress.state} - ${deliveryAddress.postal_code}`
+                        : "Address not provided"}
+                    </Typography>
+                    <Typography variant="body2">{deliveryAddress?.country || "Country not provided"}</Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Phone: {deliveryAddress?.mobile_number || "Phone not provided"}
+                    </Typography>
+                  </Box>
+
                   <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                     Price Details
                   </Typography>
                   <Divider sx={{ my: 1 }} />
                   <Box display="flex" justifyContent="space-between">
                     <Typography variant="body1">Subtotal</Typography>
-                    <Typography variant="body1">${totalPrice + totalDiscount}</Typography>
+                    <Typography variant="body1">{formatRupees(totalPrice + totalDiscount)}</Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
                     <Typography variant="body1" color="success.main">
                       Discount Applied
                     </Typography>
                     <Typography variant="body1" color="success.main">
-                      -${totalDiscount}
+                      -{formatRupees(totalDiscount)}
                     </Typography>
                   </Box>
                   <Divider sx={{ my: 1 }} />
@@ -380,7 +411,7 @@ const CartComponent = () => {
                       Total Amount
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                      ${totalPrice}
+                      {formatRupees(totalPrice)}
                     </Typography>
                   </Box>
                   <Button
@@ -398,24 +429,6 @@ const CartComponent = () => {
           )}
         </Grid>
       )}
-
-      <Dialog open={paymentDialogOpen}>
-        <DialogTitle>Scan QR to Pay</DialogTitle>
-        <DialogContent>
-          <Typography>Scan this UPI QR using PhonePe, GPay, or any UPI app:</Typography>
-          <Box display="flex" justifyContent="center" my={2}>
-            <QRCodeCanvas
-              value={`upi://pay?pa=6370610827@ybl&pn=Your Store&am=${totalPrice}&cu=INR`}
-              size={220}
-              level="H"
-              includeMargin={true}
-            />
-          </Box>
-          <Typography align="center" fontSize={12}>
-            Waiting for payment confirmation (up to 5 minutes)...
-          </Typography>
-        </DialogContent>
-      </Dialog>
     </Container>
   );
 };

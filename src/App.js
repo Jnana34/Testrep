@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Header from "./Header";
+import Footer from "./Footer";
 import Home from "./home";
 import Cart from "./Cart";
 import Products from "./products";
@@ -10,6 +11,9 @@ import ForgotPasswordPage from "./ForgotPasswordPage";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import { store } from "./redux/store";
 import { logout, loginSuccess } from "./redux/authSlice"; // Adjust path if needed
+import config from "./config/config";
+
+console.log(`url is ${config.API_URL}`)
 
 const AppWrapper = () => {
   const dispatch = useDispatch();
@@ -30,7 +34,9 @@ const AppWrapper = () => {
   };
 
   const hideHeaderOnRoutes = ["/login", "/register", "/forgot-password"];
+  const hideFoooterOnRoutes = ["/login", "/register", "/forgot-password"];
   const shouldShowHeader = !hideHeaderOnRoutes.includes(location.pathname);
+  const shouldShowFooter = !hideFoooterOnRoutes.includes(location.pathname);
 
   return (
     <>
@@ -59,6 +65,7 @@ const AppWrapper = () => {
           element={isAuthenticated ? <Products /> : <Navigate to="/login" replace />}
         />
       </Routes>
+      {shouldShowFooter && <Footer />}
     </>
   );
 };
