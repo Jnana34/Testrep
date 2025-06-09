@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "./redux/authSlice";
+import config from "./config/config";
 
 const LoginPage = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState("");
@@ -37,7 +38,7 @@ const LoginPage = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch("https://sangsdemos.in/api/api/token/", {
+      const response = await fetch(`${config.API_URL}api/token/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

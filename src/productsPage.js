@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import config from "./config/config";
 import {
   Box,
   Typography,
@@ -15,6 +16,12 @@ import { setCartCountFlag } from "./redux/cartSlice";
 
 const ProductPage = () => {
   const token = localStorage.getItem("access_token");
+  const formatRupees = (amount) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(amount);
   const dispatch = useDispatch();
   const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
 
@@ -23,7 +30,7 @@ const ProductPage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("https://sangsdemos.in/api/products/", {
+        const response = await fetch(`${config.API_URL}products/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -57,7 +64,7 @@ const ProductPage = () => {
     };
 
     try {
-      const response = await fetch("https://sangsdemos.in/api/cart/query/", {
+      const response = await fetch(`${config.API_URL}cart/query/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -141,7 +148,7 @@ const ProductPage = () => {
                   {candle.name}
                 </Typography>
                 <Typography variant="body1" color="textSecondary">
-                  ${candle.price}
+                  {formatRupees(candle.price)}
                 </Typography>
 
                 <Box

@@ -16,6 +16,7 @@ import { useCart } from "./CartContext";
 import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
 import { useNavigate } from "react-router-dom";
+import config from "./config/config";
 
 const Home = () => {
   const token = localStorage.getItem("access_token");
@@ -38,7 +39,7 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("https://sangsdemos.in/api/products/", {
+        const response = await fetch(`${config.API_URL}products/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -62,7 +63,7 @@ const Home = () => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const response = await fetch("https://sangsdemos.in/api/reviews/", {
+        const response = await fetch(`${config.API_URL}reviews/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -102,7 +103,7 @@ const Home = () => {
     };
 
     try {
-      const response = await fetch("https://sangsdemos.in/api/cart/query/", {
+      const response = await fetch(`${config.API_URL}cart/query/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

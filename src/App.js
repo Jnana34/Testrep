@@ -11,6 +11,9 @@ import ForgotPasswordPage from "./ForgotPasswordPage";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import { store } from "./redux/store";
 import { logout, loginSuccess } from "./redux/authSlice"; // Adjust path if needed
+import config from "./config/config";
+
+console.log(`url is ${config.API_URL}`)
 
 const AppWrapper = () => {
   const dispatch = useDispatch();

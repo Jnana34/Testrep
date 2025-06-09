@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import config from "./config/config";
 import {
   AppBar,
   Toolbar,
@@ -39,7 +40,7 @@ const Header = ({ onLogout }) => {
   useEffect(() => {
     const fetchCartData = async () => {
       try {
-        const response = await fetch("https://sangsdemos.in/api/cart/query/?hashmap=cart_data", {
+        const response = await fetch(`${config.API_URL}cart/query/?hashmap=cart_data`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
