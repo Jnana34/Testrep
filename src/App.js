@@ -20,6 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout, loginSuccess } from "./redux/authSlice";
 import useIdleLogout from "./hooks/useIdleLogout";
 import { Modal, Box, Typography, Button } from "@mui/material";
+import config from "./config/config";
 
 const AppWrapper = () => {
   const dispatch = useDispatch();
@@ -57,7 +58,7 @@ const AppWrapper = () => {
     }
   }, [isAuthPage, isAuthenticated, dispatch]);
 
-  useIdleLogout(15 * 1000, handleIdleLogout, authChecked && isAuthenticated);
+  useIdleLogout(config.Inactive_timeout_sec * 1000, handleIdleLogout, authChecked && isAuthenticated);
 
   const handleGoToLogin = () => {
     setShowIdleModal(false);
