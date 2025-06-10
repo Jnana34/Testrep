@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Paper,
@@ -17,18 +17,19 @@ import { loginSuccess } from "./redux/authSlice";
 import config from "./config/config";
 
 const LoginPage = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   useEffect(() => {
-    fetch('/config.json')
-      .then(res => res.json())
-      .then(config => {
-        console.log('Loaded config:', config);
+    fetch("/config.json")
+      .then((res) => res.json())
+      .then((config) => {
+        console.log("Loaded config:", config);
       });
   }, []);
 
@@ -41,7 +42,11 @@ const LoginPage = ({ onLoginSuccess }) => {
       const response = await fetch(`${config.API_URL}api/token/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          identifier: emailOrPhone,
+          password: password,
+          username: 'required',
+        }),
       });
 
       const result = await response.json();
@@ -56,7 +61,7 @@ const LoginPage = ({ onLoginSuccess }) => {
         navigate("/home");
       } else {
         const error =
-          result?.detail || "Invalid username or password. Please try again.";
+          result?.detail || "Invalid credentials. Please try again.";
         setErrorMessage(error);
       }
     } catch (err) {
@@ -86,12 +91,12 @@ const LoginPage = ({ onLoginSuccess }) => {
           sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
           <TextField
-            label="Username"
+            label="Email or Phone Number"
             type="text"
             fullWidth
             required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={emailOrPhone}
+            onChange={(e) => setEmailOrPhone(e.target.value)}
           />
           <TextField
             label="Password"

@@ -43,13 +43,38 @@ const RegisterPage = () => {
   }, [resendTimer]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Only allow digits in mobile_number
+    if (name === "mobile_number" && !/^\d*$/.test(value)) return;
+
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const validateInputs = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\d{10}$/;
+
+    if (!emailRegex.test(formData.email)) {
+      setErrorMessage("Please enter a valid email address.");
+      return false;
+    }
+
+    if (!phoneRegex.test(formData.mobile_number)) {
+      setErrorMessage("Please enter a valid 10-digit mobile number.");
+      return false;
+    }
+
+    return true;
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
+
+    if (!validateInputs()) return;
+
     setIsLoading(true);
 
     try {
@@ -66,7 +91,7 @@ const RegisterPage = () => {
       if (response.ok) {
         setSuccessMessage("OTP sent to your email. Please verify.");
         setStep(2);
-        setResendTimer(60); // start timer on OTP send
+        setResendTimer(60);
       } else {
         setErrorMessage(result.detail || "Failed to send OTP");
       }
@@ -87,13 +112,16 @@ const RegisterPage = () => {
       const response = await fetch(`${config.API_URL}register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, mobile_number: formData.mobile_number }),
+        body: JSON.stringify({
+          email: formData.email,
+          mobile_number: formData.mobile_number,
+        }),
       });
 
       const result = await response.json();
       if (response.ok) {
         setSuccessMessage("OTP resent to your email.");
-        setResendTimer(60); // restart timer
+        setResendTimer(60);
       } else {
         setErrorMessage(result.detail || "Failed to resend OTP");
         setSuccessMessage("");
@@ -201,6 +229,7 @@ const RegisterPage = () => {
                 label="Mobile Number"
                 name="mobile_number"
                 fullWidth
+                required
                 value={formData.mobile_number}
                 onChange={handleChange}
               />
