@@ -52,27 +52,32 @@ const AppWrapper = () => {
     }
   }, [isAuthenticated]);
 
-  const handleLogout = useCallback(() => {
-    if (!isAuthPage && isAuthenticated) {
-      localStorage.removeItem("access_token");
-      dispatch(logout());
-      setShowIdleModal(true);
-    }
-  }, [isAuthPage, isAuthenticated, dispatch]);
+  const handleLogout = useCallback(
+    (isIdle = false) => {
+      if (!isAuthPage && isAuthenticated) {
+        localStorage.removeItem("access_token");
+        dispatch(logout());
+        if (isIdle) {
+          setShowIdleModal(true);
+        }
+      }
+    },
+    [isAuthPage, isAuthenticated, dispatch]
+  );
 
   // Inactivity logout (15 min)
   useIdleLogout(
     config.Inactive_timeout_sec * 1000,
-    handleLogout,
+    () => handleLogout(true),
     authChecked && isAuthenticated
   );
 
   // Hard timeout logout (1 hour)
   useHardLogout(
-    config.Session_timeout_sec * 1000,
-    handleLogout,
-    authChecked && isAuthenticated
-  );
+  config.Session_timeout_sec * 1000,
+  () => handleLogout(true),
+  authChecked && isAuthenticated
+);
 
   const handleGoToLogin = () => {
     setShowIdleModal(false);
@@ -91,7 +96,7 @@ const AppWrapper = () => {
 
   return (
     <>
-      {shouldShowHeader && <Header onLogout={handleLogout} />}
+      {shouldShowHeader && <Header onLogout={() => handleLogout(false)} />}
 
       <Routes>
         <Route
