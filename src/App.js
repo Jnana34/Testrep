@@ -19,6 +19,7 @@ import ForgotPasswordPage from "./ForgotPasswordPage";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, loginSuccess } from "./redux/authSlice";
 import useIdleLogout from "./hooks/useIdleLogout";
+import useHardLogout from "./hooks/useHardLogout"; // <-- Add this
 import { Modal, Box, Typography, Button } from "@mui/material";
 import config from "./config/config";
 
@@ -31,7 +32,9 @@ const AppWrapper = () => {
   const [authChecked, setAuthChecked] = useState(false);
   const [showIdleModal, setShowIdleModal] = useState(false);
 
-  const isAuthPage = ["/login", "/register", "/forgot-password"].includes(location.pathname);
+  const isAuthPage = ["/login", "/register", "/forgot-password"].includes(
+    location.pathname
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -43,14 +46,13 @@ const AppWrapper = () => {
     setAuthChecked(true);
   }, [dispatch]);
 
-  // **NEW** Reset modal when user logs in
   useEffect(() => {
     if (isAuthenticated) {
       setShowIdleModal(false);
     }
   }, [isAuthenticated]);
 
-  const handleIdleLogout = useCallback(() => {
+  const handleLogout = useCallback(() => {
     if (!isAuthPage && isAuthenticated) {
       localStorage.removeItem("access_token");
       dispatch(logout());
@@ -58,7 +60,19 @@ const AppWrapper = () => {
     }
   }, [isAuthPage, isAuthenticated, dispatch]);
 
-  useIdleLogout(config.Inactive_timeout_sec * 1000, handleIdleLogout, authChecked && isAuthenticated);
+  // Inactivity logout (15 min)
+  useIdleLogout(
+    config.Inactive_timeout_sec * 1000,
+    handleLogout,
+    authChecked && isAuthenticated
+  );
+
+  // Hard timeout logout (1 hour)
+  useHardLogout(
+    config.Session_timeout_sec * 1000,
+    handleLogout,
+    authChecked && isAuthenticated
+  );
 
   const handleGoToLogin = () => {
     setShowIdleModal(false);
@@ -77,7 +91,7 @@ const AppWrapper = () => {
 
   return (
     <>
-      {shouldShowHeader && <Header onLogout={handleIdleLogout} />}
+      {shouldShowHeader && <Header onLogout={handleLogout} />}
 
       <Routes>
         <Route
@@ -126,7 +140,6 @@ const AppWrapper = () => {
 
       {shouldShowFooter && <Footer />}
 
-      {/* Idle Logout Modal */}
       <Modal open={showIdleModal && !isAuthPage} onClose={handleGoToLogin}>
         <Box
           sx={{
@@ -144,10 +157,10 @@ const AppWrapper = () => {
           }}
         >
           <Typography variant="h6" gutterBottom>
-            Logged Out Due to Inactivity
+            Logged Out
           </Typography>
           <Typography variant="body1" mb={3}>
-            You have been automatically logged out.
+            Logged out Due to Inactivity.
           </Typography>
           <Button variant="contained" color="primary" onClick={handleGoToLogin}>
             Go to Login
@@ -157,7 +170,6 @@ const AppWrapper = () => {
     </>
   );
 };
-
 
 const App = () => (
   <Provider store={store}>
