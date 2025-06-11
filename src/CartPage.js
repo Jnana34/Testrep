@@ -74,7 +74,7 @@ const CartComponent = () => {
     };
     const fetchAddress = async () => {
       try {
-        const response = await fetch(`${config.API_URL}fetchaddress/?user_id=13`, {
+        const response = await fetch(`${config.API_URL}fetchaddress/?user_id=17`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -232,13 +232,55 @@ const CartComponent = () => {
       name: "Your Store",
       description: "Order Payment",
       image: "https://yourlogo.url/logo.png", // optional
+      // handler: async function (response) {
+      //   alert("Payment successful. Payment ID: " + response.razorpay_payment_id);
+      //   await clearCartInRedis();
+      //   setCartItems([]);
+      //   dispatch(setCartCountFlag(!cartCountFlag));
+      //   setOrderPlaced(true);
+      // },
+
       handler: async function (response) {
         alert("Payment successful. Payment ID: " + response.razorpay_payment_id);
-        await clearCartInRedis();
-        setCartItems([]);
-        dispatch(setCartCountFlag(!cartCountFlag));
-        setOrderPlaced(true);
+
+        // Construct order payload
+        const orderPayload = {
+          items: cartItems.map(item => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            discount: item.discount,
+          })),
+          total_amount: totalPrice,
+          delivery_address: deliveryAddress,
+          razorpay_payment_id: response.razorpay_payment_id,
+        };
+
+        try {
+          const saveOrderRes = await fetch(`${config.API_URL}save-order/`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(orderPayload),
+          });
+
+          if (!saveOrderRes.ok) {
+            throw new Error("Failed to save order in DB");
+          }
+
+          await clearCartInRedis();
+          setCartItems([]);
+          dispatch(setCartCountFlag(!cartCountFlag));
+          setOrderPlaced(true);
+        } catch (err) {
+          alert("Order was paid but saving failed: " + err.message);
+        }
       },
+
+
+
       prefill: {
         name: "Jnana Das",
         email: "jnanaranjan27@gmail.com",
@@ -258,6 +300,7 @@ const CartComponent = () => {
     setProceedAlert(false);
     setPaymentDialogOpen(true);
   };
+
 
 
   return (
