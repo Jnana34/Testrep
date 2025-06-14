@@ -55,6 +55,8 @@ const LoginPage = ({ onLoginSuccess }) => {
       if (response.ok && result.access && result.refresh) {
         localStorage.setItem("access_token", result.access);
         localStorage.setItem("refresh_token", result.refresh);
+        localStorage.setItem("user_id", result.user_id);
+        console.log(`fetched id is ${result.user_id}`)
 
         dispatch(loginSuccess());
         onLoginSuccess();
@@ -109,13 +111,13 @@ const LoginPage = ({ onLoginSuccess }) => {
 
           <Grid container justifyContent="flex-end">
             <Grid item>
-              <Link
-                component="button"
+              <Typography
                 variant="body2"
+                sx={{ cursor: "pointer", color: "primary.main" }}
                 onClick={() => navigate("/forgot-password")}
               >
                 Forgot password?
-              </Link>
+              </Typography>
             </Grid>
           </Grid>
 

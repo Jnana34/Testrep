@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
+import { ThemeProvider, createTheme, CssBaseline, responsiveFontSizes } from "@mui/material";
 import {
   Routes,
   Route,
@@ -8,6 +9,11 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import ProfilePage from './ProfilePage';
+import OrdersPage from './OrdersPage';
+import WishlistPage from './WishlistPage';
+import SettingsPage from './SettingsPage';
+import SupportPage from './SupportPage';
 import Header from "./Header";
 import Footer from "./Footer";
 import Home from "./home";
@@ -74,10 +80,10 @@ const AppWrapper = () => {
 
   // Hard timeout logout (1 hour)
   useHardLogout(
-  config.Session_timeout_sec * 1000,
-  () => handleLogout(true),
-  authChecked && isAuthenticated
-);
+    config.Session_timeout_sec * 1000,
+    () => handleLogout(true),
+    authChecked && isAuthenticated
+  );
 
   const handleGoToLogin = () => {
     setShowIdleModal(false);
@@ -89,7 +95,21 @@ const AppWrapper = () => {
   const shouldShowHeader = !hideHeaderOnRoutes.includes(location.pathname);
   const shouldShowFooter = !hideFooterOnRoutes.includes(location.pathname);
 
-  if (!authChecked) return null;
+  if (!authChecked) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+        }}
+      >
+        <Typography variant="h6">Loading...</Typography>
+      </Box>
+    );
+  }
+
 
   const allowAccessWhileModal =
     showIdleModal && !isAuthPage && !isAuthenticated;
@@ -141,6 +161,57 @@ const AppWrapper = () => {
             )
           }
         />
+        <Route
+          path="/profile"
+          element={
+            isAuthenticated || allowAccessWhileModal ? (
+              <ProfilePage />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            isAuthenticated || allowAccessWhileModal ? (
+              <OrdersPage />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/wishlist"
+          element={
+            isAuthenticated || allowAccessWhileModal ? (
+              <WishlistPage />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            isAuthenticated || allowAccessWhileModal ? (
+              <SettingsPage />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/support"
+          element={
+            isAuthenticated || allowAccessWhileModal ? (
+              <SupportPage />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
       </Routes>
 
       {shouldShowFooter && <Footer />}
@@ -176,9 +247,15 @@ const AppWrapper = () => {
   );
 };
 
+let theme = createTheme();
+theme = responsiveFontSizes(theme);
+
 const App = () => (
   <Provider store={store}>
-    <AppWrapper />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AppWrapper />
+    </ThemeProvider>
   </Provider>
 );
 
