@@ -1,7 +1,8 @@
 const config = {
-  API_URL: 'http://localhost:3002/',
-  Inactive_timeout_sec:15000,
-  Session_timeout_sec: 200000,
+  API_URL: process.env.REACT_APP_API_URL || 'https://sangsdemos.in/api/',
+  Inactive_timeout_sec: parseInt(process.env.REACT_APP_INACTIVE_TIMEOUT_SEC || '15000', 10),
+  Session_timeout_sec: parseInt(process.env.REACT_APP_SESSION_TIMEOUT_SEC || '200000', 10),
 };
 
 export default config;
+
