@@ -31,7 +31,7 @@ import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import { createTheme, ThemeProvider, responsiveFontSizes } from "@mui/material/styles";
 import ProfileInfoTab from "./components/profile-tabs/ProfileInfoTab";
 import SavedAddressesTab from "./components/profile-tabs/SavedAddressesTab";
-
+import SecurityTab from "./components/profile-tabs/SecurityTab";
 
 const SIDEBAR_WIDTH = 200;
 const HEADER_HEIGHT = 5;
@@ -172,8 +172,10 @@ const ProfilePage = () => {
         <Box
           sx={{
             flexGrow: 1,
+            display: 'flex',
+            flexDirection: 'column',
             px: { xs: 1, sm: 0.5 },
-            width: `calc(100% - 100px)`,
+            width: `calc(100% - ${SIDEBAR_WIDTH}px)`,
           }}
         >
           {/* Tabs for desktop */}
@@ -193,7 +195,7 @@ const ProfilePage = () => {
             </Tabs>
           )}
 
-          <Paper sx={{ p: 3, height: 600, overflowY: 'auto' }}>
+          <Paper sx={{ p: 3, flex: 1, height: '90%', minHeight: '80%' }}>
             {tab === 0 && (
               <ProfileInfoTab
                 profile={profile}
@@ -204,28 +206,8 @@ const ProfilePage = () => {
               />
             )}
 
-            {tab === 1 && (
-              <Box>
-                <Typography variant="h6" mb={2}>
-                  Password Management
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField label="Current Password" type="password" fullWidth />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField label="New Password" type="password" fullWidth />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField label="Confirm Password" type="password" fullWidth />
-                  </Grid>
-                </Grid>
-                <Button variant="contained" sx={{ mt: 3 }} color="secondary">
-                  Update Password
-                </Button>
-              </Box>
-            )}
-
+            {tab === 1 && <SecurityTab />}
+            
             {tab === 2 && (
               <SavedAddressesTab profile={profile} />
             )}

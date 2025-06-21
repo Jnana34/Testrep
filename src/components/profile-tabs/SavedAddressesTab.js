@@ -6,6 +6,11 @@ import {
   Paper,
   CircularProgress,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import { Add, Edit, Delete } from "@mui/icons-material";
 import AddAddressDialog from "../AddAddressDialog";
@@ -17,11 +22,15 @@ const SavedAddressesTab = () => {
   const [loading, setLoading] = useState(true);
   const [editingAddress, setEditingAddress] = useState(null);
   const userId = localStorage.getItem("user_id");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState(null);
+
 
   useEffect(() => {
     const fetchAddresses = async () => {
       try {
         const response = await axios.get(`/user-addresses/?user_id=${userId}`);
+        //console.log("📄 Response data:", response.data); // just the data
         if (Array.isArray(response.data)) {
           setAddresses(response.data);
         } else {
@@ -59,7 +68,7 @@ const SavedAddressesTab = () => {
 
   const handleDeleteAddress = async (id) => {
     try {
-      await axios.delete(`/api/users-addresses/${id}/`);
+      await axios.delete(`/user-addresses/?address_id=${id}`);
       setAddresses((prev) => prev.filter((addr) => addr.id !== id));
     } catch (error) {
       console.error("Failed to delete address:", error);
@@ -73,6 +82,13 @@ const SavedAddressesTab = () => {
       handleAddAddress(data);
     }
     setEditingAddress(null);
+  };
+  const handleDeleteConfirmed = () => {
+    if (addressToDelete) {
+      handleDeleteAddress(addressToDelete);
+      setDeleteConfirmOpen(false);
+      setAddressToDelete(null);
+    }
   };
 
   if (loading) {
@@ -113,7 +129,12 @@ const SavedAddressesTab = () => {
                 <IconButton onClick={() => { setEditingAddress(addr); setDialogOpen(true); }}>
                   <Edit fontSize="small" />
                 </IconButton>
-                <IconButton onClick={() => handleDeleteAddress(addr.id)}>
+                <IconButton
+                  onClick={() => {
+                    setAddressToDelete(addr.id);
+                    setDeleteConfirmOpen(true);
+                  }}
+                >
                   <Delete fontSize="small" />
                 </IconButton>
               </Box>
@@ -124,6 +145,7 @@ const SavedAddressesTab = () => {
               {addr.city}, {addr.state} {addr.postalCode}
             </Typography>
             <Typography>{addr.country}</Typography>
+            <Typography>{`Contact: ${addr.phoneNumber}`}</Typography>
           </Paper>
         ))
       )}
@@ -138,6 +160,22 @@ const SavedAddressesTab = () => {
         initialData={editingAddress}
         mode={editingAddress ? "edit" : "add"}
       />
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this address? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirmed} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

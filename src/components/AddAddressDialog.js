@@ -18,6 +18,7 @@ const AddAddressDialog = ({ open, onClose, onSave, initialData = {}, mode = "add
     state: "",
     postalCode: "",
     country: "",
+    phone: "",
   });
 
   // Update form when initialData changes (for edit mode)
@@ -31,6 +32,7 @@ const AddAddressDialog = ({ open, onClose, onSave, initialData = {}, mode = "add
         state: initialData.state || "",
         postalCode: initialData.postalCode || "",
         country: initialData.country || "",
+        phone: initialData.phone || "",
       });
     } else {
       setForm({
@@ -41,6 +43,7 @@ const AddAddressDialog = ({ open, onClose, onSave, initialData = {}, mode = "add
         state: "",
         postalCode: "",
         country: "",
+        phone: "",
       });
     }
   }, [initialData, mode, open]);
@@ -125,6 +128,16 @@ const AddAddressDialog = ({ open, onClose, onSave, initialData = {}, mode = "add
               name="country"
               label="Country"
               value={form.country}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              fullWidth
+              name="phone"
+              label="Phone"
+              value={form.phone}
               onChange={handleChange}
               required
             />
