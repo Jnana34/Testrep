@@ -251,11 +251,26 @@ const Header = ({ onLogout }) => {
               },
             }}
           >
-            {["Profile", "Orders", "Wishlist", "Cart", "Settings", "Help & Support"].map((item) => (
-              <MenuItem key={item} divider onClick={handleUserMenuClose}>
-                {item}
+            {[
+              { label: "Profile", route: "/profile" },
+              { label: "Orders", route: "/orders" },
+              { label: "Wishlist", route: "/wishlist" },
+              { label: "Cart", route: "/cart" },
+              { label: "Settings", route: "/settings" },
+              { label: "Help & Support", route: "/support" },
+            ].map(({ label, route }) => (
+              <MenuItem
+                key={label}
+                divider
+                onClick={() => {
+                  handleUserMenuClose();
+                  navigate(route);
+                }}
+              >
+                {label}
               </MenuItem>
             ))}
+
             <MenuItem
               divider
               onClick={() => {

@@ -20,7 +20,6 @@ import config from "./config/config";
 
 const Home = () => {
   const token = localStorage.getItem("access_token");
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
   const { refreshCart } = useCart();
@@ -28,12 +27,6 @@ const Home = () => {
   // State for products
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
-
-  useEffect(() => {
-    if (!token) {
-      navigate("/login");
-    }
-  }, [token, navigate]);
 
   // Fetch products from API on mount
   useEffect(() => {
