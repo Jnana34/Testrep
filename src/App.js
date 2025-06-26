@@ -28,6 +28,7 @@ import useIdleLogout from "./hooks/useIdleLogout";
 import useHardLogout from "./hooks/useHardLogout"; // <-- Add this
 import { Modal, Box, Typography, Button } from "@mui/material";
 import config from "./config/config";
+import axios from "./utilities/axiosConfig";
 
 const AppWrapper = () => {
   const dispatch = useDispatch();
@@ -42,43 +43,60 @@ const AppWrapper = () => {
     location.pathname
   );
 
+  // ✅ Check auth via backend (cookie-based)
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      dispatch(loginSuccess());
-    } else {
-      dispatch(logout());
-    }
-    setAuthChecked(true);
+    const checkAuth = async () => {
+      try {
+        const res = await axios.get(`/auth/me/`, {
+          withCredentials: true, // ✅ include cookies
+        });
+
+        if (res.status === 200) {
+          dispatch(loginSuccess());
+        } else {
+          dispatch(logout());
+        }
+      } catch (err) {
+        dispatch(logout());
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+
+    checkAuth();
   }, [dispatch]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      setShowIdleModal(false);
-    }
+    if (isAuthenticated) setShowIdleModal(false);
   }, [isAuthenticated]);
 
   const handleLogout = useCallback(
-    (isIdle = false) => {
+    async (isIdle = false) => {
       if (!isAuthPage && isAuthenticated) {
-        localStorage.removeItem("access_token");
-        dispatch(logout());
-        if (isIdle) {
-          setShowIdleModal(true);
+        try {
+          await axios.post("/auth/logout/", null, {
+            withCredentials: true, // Include cookies
+          });
+        } catch (err) {
+          console.error("Logout failed:", err);
         }
+
+        dispatch(logout());
+
+        if (isIdle) setShowIdleModal(true);
       }
     },
     [isAuthPage, isAuthenticated, dispatch]
   );
 
-  // Inactivity logout (15 min)
+  // ⏳ Inactivity timeout
   useIdleLogout(
     config.Inactive_timeout_sec * 1000,
     () => handleLogout(true),
     authChecked && isAuthenticated
   );
 
-  // Hard timeout logout (1 hour)
+  // 🕒 Hard timeout
   useHardLogout(
     config.Session_timeout_sec * 1000,
     () => handleLogout(true),
@@ -90,10 +108,8 @@ const AppWrapper = () => {
     navigate("/login");
   };
 
-  const hideHeaderOnRoutes = ["/login", "/register", "/forgot-password"];
-  const hideFooterOnRoutes = ["/login", "/register", "/forgot-password"];
-  const shouldShowHeader = !hideHeaderOnRoutes.includes(location.pathname);
-  const shouldShowFooter = !hideFooterOnRoutes.includes(location.pathname);
+  const shouldShowHeader = !isAuthPage;
+  const shouldShowFooter = !isAuthPage;
 
   if (!authChecked) {
     return (
@@ -105,11 +121,10 @@ const AppWrapper = () => {
           height: "100vh",
         }}
       >
-        <Typography variant="h6">Loading...</Typography>
+        <Typography variant="h6">Checking authentication...</Typography>
       </Box>
     );
   }
-
 
   const allowAccessWhileModal =
     showIdleModal && !isAuthPage && !isAuthenticated;
@@ -131,87 +146,28 @@ const AppWrapper = () => {
             isAuthenticated ? <Navigate to="/home" /> : <Navigate to="/login" />
           }
         />
-        <Route
-          path="/home"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <Home />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/cart"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <Cart />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/products"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <Products />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <ProfilePage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <OrdersPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/wishlist"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <WishlistPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <SettingsPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route
-          path="/support"
-          element={
-            isAuthenticated || allowAccessWhileModal ? (
-              <SupportPage />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-
+        {[
+          { path: "/home", element: <Home /> },
+          { path: "/cart", element: <Cart /> },
+          { path: "/products", element: <Products /> },
+          { path: "/profile", element: <ProfilePage /> },
+          { path: "/orders", element: <OrdersPage /> },
+          { path: "/wishlist", element: <WishlistPage /> },
+          { path: "/settings", element: <SettingsPage /> },
+          { path: "/support", element: <SupportPage /> },
+        ].map(({ path, element }) => (
+          <Route
+            key={path}
+            path={path}
+            element={
+              isAuthenticated || allowAccessWhileModal ? (
+                element
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+        ))}
       </Routes>
 
       {shouldShowFooter && <Footer />}
@@ -236,7 +192,7 @@ const AppWrapper = () => {
             Logged Out
           </Typography>
           <Typography variant="body1" mb={3}>
-            Logged out Due to Inactivity.
+            You were logged out due to inactivity.
           </Typography>
           <Button variant="contained" color="primary" onClick={handleGoToLogin}>
             Go to Login

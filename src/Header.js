@@ -116,6 +116,17 @@ const Header = ({ onLogout }) => {
     };
     navigate(routeMap[item] || "/");
   };
+  const handleLogout = async () => {
+    try {
+      const response = await axios.post("/auth/logout/");
+      console.log("✅ Logout successful:", response.data);
+
+      // No localStorage removal needed
+      navigate("/login");
+    } catch (error) {
+      console.error("❌ Logout failed:", error);
+    }
+  };
 
   return (
     <AppBar position="static" sx={{ backgroundColor: "#4a148c" }}>
@@ -273,6 +284,7 @@ const Header = ({ onLogout }) => {
               divider
               onClick={() => {
                 handleUserMenuClose();
+                handleLogout();
                 if (onLogout) onLogout();
               }}
             >
