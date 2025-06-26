@@ -2,22 +2,14 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:3002/",
+  baseURL: process.env.REACT_APP_API_BASE_URL || "http://localhost:3001/", // or your API domain
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // 👈 Required to send cookies with requests
 });
 
-// Automatically attach token to every request
-instance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// ✅ Do NOT attach tokens manually from localStorage
+// ✅ Do NOT add Authorization headers (token is in the cookie)
 
 export default instance;

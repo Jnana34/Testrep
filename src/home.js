@@ -16,7 +16,7 @@ import { useCart } from "./CartContext";
 import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
 import { useNavigate } from "react-router-dom";
-import config from "./config/config";
+import axios from "./utilities/axiosConfig";
 
 const Home = () => {
   const token = localStorage.getItem("access_token");
@@ -32,21 +32,14 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`${config.API_URL}products/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await axios.get(`products/`);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch products");
-        }
+        const data = response.data;
 
-        const data = await response.json();
-
-        // Assuming the product list is in data.products or just data
-        // Adjust this depending on actual API response structure
+        // Adjust depending on actual API response shape
         setProducts(data.products || data || []);
       } catch (error) {
-        console.error("Fetch products failed:", error.message);
+        console.error("❌ Fetch products failed:", error.response?.data?.detail || error.message);
       }
     };
 
@@ -56,18 +49,15 @@ const Home = () => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const response = await fetch(`${config.API_URL}reviews/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Failed to fetch reviews");
-        }
-        const data = await response.json();
+        const response = await axios.get(`reviews/`);
+
+        // Axios parses JSON for you
+        const data = response.data;
+
+        // Assuming data is an array of reviews
         setReviews(data);
       } catch (error) {
-        console.error("Error fetching reviews:", error.message);
+        console.error("❌ Error fetching reviews:", error.response?.data?.detail || error.message);
       }
     };
 
@@ -96,14 +86,7 @@ const Home = () => {
     };
 
     try {
-      const response = await fetch(`${config.API_URL}cart/query/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await axios.post(`cart/query/`, payload);
 
       dispatch(setCartCountFlag(!cartCountFlag));
 

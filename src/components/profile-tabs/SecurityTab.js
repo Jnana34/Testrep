@@ -37,18 +37,11 @@ const SecurityTab = () => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem("access_token");
-
       const response = await axios.put(
         `/change-password/`,
         {
           current_password: form.currentPassword,
           new_password: form.newPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
 

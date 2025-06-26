@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import config from "./config/config";
+import axios from "./utilities/axiosConfig";
 import {
   Container,
   Typography,
@@ -41,16 +41,8 @@ const CartComponent = () => {
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
-        const response = await fetch(`${config.API_URL}cart/query/?hashmap=cart_data`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        const result = await response.json();
-        const data = result.data || {};
-
+        const response = await axios.get(`cart/query/?hashmap=cart_data`);
+        const data = response.data?.data || {};
         const items = Object.entries(data).map(([name, value], index) => {
           const parsed = JSON.parse(value);
           return {
@@ -74,14 +66,10 @@ const CartComponent = () => {
     };
     const fetchAddress = async () => {
       try {
-        const response = await fetch(`${config.API_URL}fetchaddress/?user_id=17`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        const response = await axios.get(`fetchaddress/`, {
+          params: { user_id: 17 }, // ✅ use params for query strings
         });
-        const data = await response.json();
+        const data = response.data;
         if (Array.isArray(data) && data.length > 0) {
           setDeliveryAddress(data[0]); // Use first address
         }
@@ -95,18 +83,13 @@ const CartComponent = () => {
 
   const updateCartItemInRedis = async (name, updatedData) => {
     try {
-      await fetch(`${config.API_URL}cart/update/`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      await axios.post(`cart/update/`,
+        {
           hashmap: "cart_data",
           key: name,
           value: JSON.stringify(updatedData),
-        }),
-      });
+        }
+      );
     } catch (error) {
       console.error("Failed to update cart item:", error);
     }
@@ -114,17 +97,13 @@ const CartComponent = () => {
 
   const deleteCartItemFromRedis = async (name) => {
     try {
-      await fetch(`${config.API_URL}cart/delete/`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      await axios.post(`cart/delete/`,
+        {
           hashmap: "cart_data",
           key: name,
-        }),
-      });
+        }
+      );
+
       dispatch(setCartCountFlag(!cartCountFlag));
     } catch (error) {
       console.error("Failed to delete cart item:", error);
@@ -257,16 +236,10 @@ const CartComponent = () => {
         };
 
         try {
-          const saveOrderRes = await fetch(`${config.API_URL}save-order/`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(orderPayload),
-          });
+          const saveOrderRes = await axios.post(`save-order/`,orderPayload);
 
-          if (!saveOrderRes.ok) {
+          // Optionally check response status or data if needed
+          if (saveOrderRes.status !== 200 && saveOrderRes.status !== 201) {
             throw new Error("Failed to save order in DB");
           }
 
@@ -274,7 +247,7 @@ const CartComponent = () => {
           setCartItems([]);
           dispatch(setCartCountFlag(!cartCountFlag));
           setOrderPlaced(true);
-        } catch (err) {
+        }catch (err) {
           alert("Order was paid but saving failed: " + err.message);
         }
       },

@@ -29,7 +29,9 @@ const SavedAddressesTab = () => {
   useEffect(() => {
     const fetchAddresses = async () => {
       try {
-        const response = await axios.get(`/user-addresses/?user_id=${userId}`);
+        const response = await axios.get(`/user-addresses/`, {
+          withCredentials: true,
+        });
         //console.log("📄 Response data:", response.data); // just the data
         if (Array.isArray(response.data)) {
           setAddresses(response.data);

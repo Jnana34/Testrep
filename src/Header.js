@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import config from "./config/config";
+import axios from "./utilities/axiosConfig";
 import {
   AppBar,
   Toolbar,
@@ -28,7 +28,6 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const Header = ({ onLogout }) => {
-  const token = localStorage.getItem("access_token");
   const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
   const [cartCount, setCartCount] = useState(0);
   const navigate = useNavigate();
@@ -40,23 +39,22 @@ const Header = ({ onLogout }) => {
   useEffect(() => {
     const fetchCartData = async () => {
       try {
-        const response = await fetch(`${config.API_URL}cart/query/?hashmap=cart_data`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        const result = await response.json();
-        if (response.ok && result.data) {
+        const response = await axios.get(`cart/query/?hashmap=cart_data`);
+
+        const result = response.data;
+
+        console.log("redis_data is: ", result.data);
+
+        if (result && result.data) {
           setCartCount(Object.keys(result.data).length);
         } else {
-          console.error("Failed to fetch cart data:", result.message || result.error);
+          console.warn("No cart data found");
         }
       } catch (error) {
-        console.error("Error fetching cart data:", error);
+        console.error("❌ Error fetching cart data:", error);
       }
     };
+
 
     fetchCartData();
   }, [cartCountFlag]);
