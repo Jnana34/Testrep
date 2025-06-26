@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import config from "./config/config";
+import axios from "./utilities/axiosConfig";
 import {
   Box,
   Typography,
@@ -15,13 +15,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
 
 const ProductPage = () => {
-  const token = localStorage.getItem("access_token");
   const formatRupees = (amount) =>
     new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
       maximumFractionDigits: 2,
     }).format(amount);
+
   const dispatch = useDispatch();
   const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
 
@@ -30,30 +30,20 @@ const ProductPage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`${config.API_URL}products/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch products");
-        }
-
-        const data = await response.json();
-        setProducts(data);
+        const response = await axios.get(`products/`);
+        setProducts(response.data); // ✅ Axios auto-parses JSON
       } catch (error) {
-        console.error("❌ Error fetching products:", error.message);
+        console.error("❌ Error fetching products:", error.response?.data || error.message);
       }
     };
 
     fetchProducts();
-  }, [token]);
+  }, [cartCountFlag]);
 
   const handleAddToCart = async (candle) => {
     const value = JSON.stringify({
       quantity: 1,
-      price: candle.price.replace("$", ""),
+      price: candle.price.replace("₹", "").replace(",", ""),
       image: candle.image,
     });
 
@@ -64,28 +54,13 @@ const ProductPage = () => {
     };
 
     try {
-      const response = await fetch(`${config.API_URL}cart/query/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
+      const response = await axios.post(`cart/query/`,payload);
       dispatch(setCartCountFlag(!cartCountFlag));
-
-      if (!response.ok) {
-        throw new Error("Failed to add to cart");
-      }
-
-      const data = await response.json();
-      console.log("✅ Added to cart:", data.message);
+      console.log("✅ Added to cart:", response.data.message);
     } catch (error) {
-      console.error("❌ Error adding to cart:", error.message);
+      console.error("❌ Error adding to cart:", error.response?.data?.message || error.message);
     }
   };
-
   return (
     <Box sx={{ p: 4, backgroundColor: "#fdfdfd", minHeight: "100vh" }}>
       <Typography

@@ -26,11 +26,9 @@ const LoginPage = ({ onLoginSuccess }) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    fetch("/config.json")
-      .then((res) => res.json())
-      .then((config) => {
-        console.log("Loaded config:", config);
-      });
+    if (!config?.API_URL) {
+      console.warn("API_URL not found in config.");
+    }
   }, []);
 
   const handleLogin = async (e) => {
@@ -42,25 +40,23 @@ const LoginPage = ({ onLoginSuccess }) => {
       const response = await fetch(`${config.API_URL}api/token/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // 👈 Important: Enable cookie-based auth
         body: JSON.stringify({
           identifier: emailOrPhone,
           password: password,
-          username: 'required',
+          username: 'Ja34',
         }),
       });
 
       const result = await response.json();
-      console.log("Login response:", response.status, result);
+      console.log("Login response:", response.status,response.ok ,result);
 
-      if (response.ok && result.access && result.refresh) {
-        localStorage.setItem("access_token", result.access);
-        localStorage.setItem("refresh_token", result.refresh);
-        localStorage.setItem("user_id", result.user_id);
-        console.log(`fetched id is ${result.user_id}`)
 
-        dispatch(loginSuccess());
-        onLoginSuccess();
-        navigate("/home");
+      if (response.ok) {
+        // No token handling on client — it's stored in HttpOnly cookie
+        dispatch(loginSuccess(result.user)); // optional: store user info
+        if (onLoginSuccess) onLoginSuccess();
+        navigate("/products");
       } else {
         const error =
           result?.detail || "Invalid credentials. Please try again.";
@@ -99,6 +95,7 @@ const LoginPage = ({ onLoginSuccess }) => {
             required
             value={emailOrPhone}
             onChange={(e) => setEmailOrPhone(e.target.value)}
+            autoComplete="username"
           />
           <TextField
             label="Password"
@@ -107,6 +104,7 @@ const LoginPage = ({ onLoginSuccess }) => {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
           />
 
           <Grid container justifyContent="flex-end">

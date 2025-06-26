@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import config from "./config/config";
+import axios from "./utilities/axiosConfig";
 import {
   Box,
   Grid,
@@ -65,26 +65,17 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        console.log(`user id is ${userId}`)
-        const res = await fetch(`${config.API_URL}user/profile/?user_id=${userId}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await axios.get(`user/profile/`);
+
+        const data = res.data;
+
+        setProfile({
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          email: data.email || "",
+          phone: data.phone || "",
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          setProfile({
-            first_name: data.first_name || "",
-            last_name: data.last_name || "",
-            email: data.email || "",
-            phone: data.phone || "",
-          });
-        } else {
-          console.error("Profile fetch failed");
-        }
       } catch (err) {
         console.error("Error fetching profile:", err);
       }
@@ -98,26 +89,14 @@ const ProfilePage = () => {
 
   const handleSaveProfile = async () => {
     try {
-      const response = await fetch(`${config.API_URL}saveprofile/`, {
-        method: "PUT", // or PATCH
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`, // if using JWT
-        },
-        body: JSON.stringify({
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          email: profile.email,
-          phone: profile.phone,
-        }),
+      const response = await axios.put(`saveprofile/`, {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        phone: profile.phone,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update profile");
-      }
-
-      const data = await response.json();
-      console.log("Profile updated successfully:", data);
+      console.log("Profile updated successfully:", response.data);
       setEditMode(false);
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -207,7 +186,7 @@ const ProfilePage = () => {
             )}
 
             {tab === 1 && <SecurityTab />}
-            
+
             {tab === 2 && (
               <SavedAddressesTab profile={profile} />
             )}
