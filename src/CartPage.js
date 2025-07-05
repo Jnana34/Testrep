@@ -1,9 +1,11 @@
+// CartComponent.js
 import React, { useState, useEffect } from "react";
 import axios from "./utilities/axiosConfig";
 import {
   Container,
   Typography,
   Card,
+  Paper,
   Grid,
   IconButton,
   Divider,
@@ -12,36 +14,43 @@ import {
   TextField,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import EditIcon from "@mui/icons-material/Edit";
 import { useDispatch, useSelector } from "react-redux";
 import { setCartCountFlag } from "./redux/cartSlice";
 
 const CartComponent = () => {
-  const token = localStorage.getItem("access_token");
-  const formatRupees = (amount) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 2,
-    }).format(amount);
   const dispatch = useDispatch();
   const cartCountFlag = useSelector((state) => state.cart.cartCountFlag);
-
+  const [addresses, setAddresses] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [proceedAlert, setProceedAlert] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState(null);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const formatRupees = (amount) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 2,
+    }).format(amount);
 
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
-        const response = await axios.get(`cart/query/?hashmap=cart_data`);
+        const response = await axios.get("cart/query/?hashmap=cart_data");
         const data = response.data?.data || {};
         const items = Object.entries(data).map(([name, value], index) => {
           const parsed = JSON.parse(value);
@@ -56,7 +65,6 @@ const CartComponent = () => {
             delivery: "3-5 days",
           };
         });
-
         setCartItems(items);
       } catch (error) {
         console.error("Error fetching cart items:", error);
@@ -64,32 +72,30 @@ const CartComponent = () => {
         setLoading(false);
       }
     };
+
     const fetchAddress = async () => {
       try {
-        const response = await axios.get(`fetchaddress/`, {
-          params: { user_id: 17 }, // ✅ use params for query strings
-        });
+        const response = await axios.get("fetchaddress/");
         const data = response.data;
         if (Array.isArray(data) && data.length > 0) {
-          setDeliveryAddress(data[0]); // Use first address
+          setDeliveryAddress(data[0]);
         }
       } catch (error) {
         console.error("Failed to fetch address:", error);
       }
     };
+
     fetchAddress();
     fetchCartItems();
   }, [cartCountFlag]);
 
   const updateCartItemInRedis = async (name, updatedData) => {
     try {
-      await axios.post(`cart/update/`,
-        {
-          hashmap: "cart_data",
-          key: name,
-          value: JSON.stringify(updatedData),
-        }
-      );
+      await axios.post("cart/update/", {
+        hashmap: "cart_data",
+        key: name,
+        value: JSON.stringify(updatedData),
+      });
     } catch (error) {
       console.error("Failed to update cart item:", error);
     }
@@ -97,13 +103,10 @@ const CartComponent = () => {
 
   const deleteCartItemFromRedis = async (name) => {
     try {
-      await axios.post(`cart/delete/`,
-        {
-          hashmap: "cart_data",
-          key: name,
-        }
-      );
-
+      await axios.post("cart/delete/", {
+        hashmap: "cart_data",
+        key: name,
+      });
       dispatch(setCartCountFlag(!cartCountFlag));
     } catch (error) {
       console.error("Failed to delete cart item:", error);
@@ -112,148 +115,133 @@ const CartComponent = () => {
 
   const clearCartInRedis = async () => {
     try {
-      for (const item of cartItems) {
-        await deleteCartItemFromRedis(item.name);
-      }
+      await Promise.all(cartItems.map((item) => deleteCartItemFromRedis(item.name)));
     } catch (err) {
       console.error("Failed to clear cart:", err);
     }
   };
 
   const handleRemove = (id) => {
-    const itemToRemove = cartItems.find((item) => item.id === id);
-    if (itemToRemove) {
-      deleteCartItemFromRedis(itemToRemove.name);
+    const item = cartItems.find((item) => item.id === id);
+    if (item) {
+      deleteCartItemFromRedis(item.name);
+      setCartItems((prev) => prev.filter((i) => i.id !== id));
     }
-    setCartItems(cartItems.filter((item) => item.id !== id));
   };
 
   const handleQuantityChange = (id, value) => {
     if (value === "") {
-      setCartItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === id ? { ...item, quantity: "" } : item
-        )
+      setCartItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, quantity: "" } : item))
       );
       return;
     }
 
-    const newQuantity = parseInt(value, 10);
-    if (!isNaN(newQuantity) && newQuantity > 0) {
-      setCartItems((prevItems) => {
-        const updated = prevItems.map((item) => {
+    const qty = parseInt(value, 10);
+    if (!isNaN(qty) && qty > 0) {
+      setCartItems((prev) =>
+        prev.map((item) => {
           if (item.id === id) {
-            const updatedItem = { ...item, quantity: newQuantity };
+            const updated = { ...item, quantity: qty };
             updateCartItemInRedis(item.name, {
               price: item.price,
-              quantity: newQuantity,
+              quantity: qty,
               image: item.image,
             });
-            return updatedItem;
+            return updated;
           }
           return item;
-        });
-        return updated;
-      });
+        })
+      );
     }
   };
 
   const handleBlur = (id, value) => {
-    const quantity = parseInt(value, 10);
-    setCartItems((prevItems) =>
-      prevItems.map((item) => {
+    const qty = parseInt(value, 10);
+    const corrected = !isNaN(qty) && qty > 0 ? qty : 1;
+
+    setCartItems((prev) =>
+      prev.map((item) => {
         if (item.id === id) {
-          const correctedQuantity = !isNaN(quantity) && quantity > 0 ? quantity : 1;
           updateCartItemInRedis(item.name, {
             price: item.price,
-            quantity: correctedQuantity,
+            quantity: corrected,
             image: item.image,
           });
-          return { ...item, quantity: correctedQuantity };
+          return { ...item, quantity: corrected };
         }
         return item;
       })
     );
   };
 
-  const totalDiscount = cartItems.reduce((total, item) => total + item.discount * item.quantity, 0);
+  const totalDiscount = cartItems.reduce((sum, item) => sum + item.discount * item.quantity, 0);
   const totalPrice = cartItems.reduce(
-    (total, item) => total + (item.price - item.discount) * item.quantity,
+    (sum, item) => sum + (item.price - item.discount) * item.quantity,
     0
   );
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
+  const loadRazorpayScript = () =>
+    new Promise((resolve) => {
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
+
+  const handleUpdateAddress = async (updatedAddress) => {
+    try {
+      const response = await axios.put(`/user-addresses/`, updatedAddress);
+      setAddresses((prev) =>
+        prev.map((addr) => (addr.id === updatedAddress.id ? response.data : addr))
+      );
+    } catch (error) {
+      console.error("Failed to update address:", error);
+    }
   };
 
   const handleProceed = async () => {
-    if (cartItems.length === 0) {
+    if (!cartItems.length) {
       setProceedAlert(true);
       return;
     }
 
-    const res = await loadRazorpayScript();
-    if (!res) {
-      alert("Failed to load Razorpay SDK. Check your connection.");
-      return;
-    }
+    const loaded = await loadRazorpayScript();
+    if (!loaded) return alert("Failed to load Razorpay SDK.");
 
     const options = {
-      key: "rzp_test_lsPQxI0eQgMdf5", // Replace with your Razorpay key
-      amount: totalPrice * 100, // in paise
+      key: "rzp_test_lsPQxI0eQgMdf5",
+      amount: totalPrice * 100,
       currency: "INR",
       name: "Your Store",
       description: "Order Payment",
-      image: "https://yourlogo.url/logo.png", // optional
-      // handler: async function (response) {
-      //   alert("Payment successful. Payment ID: " + response.razorpay_payment_id);
-      //   await clearCartInRedis();
-      //   setCartItems([]);
-      //   dispatch(setCartCountFlag(!cartCountFlag));
-      //   setOrderPlaced(true);
-      // },
-
+      image: "https://yourlogo.url/logo.png",
       handler: async function (response) {
-        alert("Payment successful. Payment ID: " + response.razorpay_payment_id);
-
-        // Construct order payload
-        const orderPayload = {
-          items: cartItems.map(item => ({
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            discount: item.discount,
-          })),
-          total_amount: totalPrice,
-          delivery_address: deliveryAddress,
-          razorpay_payment_id: response.razorpay_payment_id,
-        };
-
         try {
-          const saveOrderRes = await axios.post(`save-order/`,orderPayload);
+          const orderPayload = {
+            items: cartItems.map(({ name, price, quantity, discount }) => ({
+              name,
+              price,
+              quantity,
+              discount,
+            })),
+            total_amount: totalPrice,
+            delivery_address: deliveryAddress,
+            razorpay_payment_id: response.razorpay_payment_id,
+          };
 
-          // Optionally check response status or data if needed
-          if (saveOrderRes.status !== 200 && saveOrderRes.status !== 201) {
-            throw new Error("Failed to save order in DB");
-          }
+          const res = await axios.post("save-order/", orderPayload);
+          if (![200, 201].includes(res.status)) throw new Error("Saving failed");
 
           await clearCartInRedis();
           setCartItems([]);
           dispatch(setCartCountFlag(!cartCountFlag));
           setOrderPlaced(true);
-        }catch (err) {
-          alert("Order was paid but saving failed: " + err.message);
+        } catch (err) {
+          alert("Payment succeeded, but saving order failed.");
         }
       },
-
-
-
       prefill: {
         name: "Jnana Das",
         email: "jnanaranjan27@gmail.com",
@@ -262,23 +250,17 @@ const CartComponent = () => {
       notes: {
         address: "Bangalore, 560034, India",
       },
-      theme: {
-        color: "#1976d2",
-      },
+      theme: { color: "#1976d2" },
     };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
-
+    new window.Razorpay(options).open();
     setProceedAlert(false);
     setPaymentDialogOpen(true);
   };
 
-
-
   return (
     <Container maxWidth="lg">
-      <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", display: "flex", alignItems: "center" }}>
+      <Typography variant="h5" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", mb: 2 }}>
         <ShoppingCartIcon sx={{ mr: 1 }} />
         My Cart ({cartItems.length})
       </Typography>
@@ -291,7 +273,7 @@ const CartComponent = () => {
 
       {orderPlaced && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          ✅ Payment confirmed! Your order has been placed.
+          ✅ Payment successful! Your order has been placed.
         </Alert>
       )}
 
@@ -300,50 +282,30 @@ const CartComponent = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={3} justifyContent="space-between">
+        <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             {cartItems.length === 0 ? (
               <Typography variant="h6">Your cart is empty.</Typography>
             ) : (
               cartItems.map((item) => (
-                <Card key={item.id} sx={{ mb: 2, p: 2, boxShadow: 3, width: "140%", minHeight: "140px", position: "relative" }}>
+                <Card key={item.id} sx={{ mb: 2, p: 2, boxShadow: 3 }}>
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={3}>
-                      <Box
-                        sx={{
-                          width: "120px",
-                          height: "120px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          overflow: "hidden",
-                          borderRadius: 2,
-                          border: "1px solid #ddd",
-                          marginTop: "-50px",
-                        }}
-                      >
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
+                      <Box sx={{ width: "100%", height: 100, overflow: "hidden", borderRadius: 2 }}>
+                        <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       </Box>
                     </Grid>
-
                     <Grid item xs={6}>
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                        <Typography variant="h6">{item.name}</Typography>
-                        <Typography variant="body2" color="textSecondary">Seller: {item.seller}</Typography>
-                        <Typography variant="body2" color="textSecondary">Delivery in {item.delivery}</Typography>
-                        <Typography variant="body2" color="error">
-                          <s>{formatRupees(item.price)}</s> <b>{formatRupees(item.price - item.discount)}</b>
-                        </Typography>
-                        <Typography variant="body2" color="success.main">
-                          You save: {formatRupees(item.discount)}
-                        </Typography>
-                      </Box>
-
-                      <Box mt={1} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Typography variant="h6">{item.name}</Typography>
+                      <Typography variant="body2">Seller: {item.seller}</Typography>
+                      <Typography variant="body2">Delivery in {item.delivery}</Typography>
+                      <Typography variant="body2" color="error">
+                        <s>{formatRupees(item.price)}</s> <b>{formatRupees(item.price - item.discount)}</b>
+                      </Typography>
+                      <Typography variant="body2" color="success.main">
+                        You save: {formatRupees(item.discount)}
+                      </Typography>
+                      <Box mt={1} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <IconButton onClick={() => handleQuantityChange(item.id, item.quantity - 1)} size="small">
                           <RemoveIcon />
                         </IconButton>
@@ -352,101 +314,116 @@ const CartComponent = () => {
                           value={item.quantity}
                           onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                           onBlur={(e) => handleBlur(item.id, e.target.value)}
-                          inputProps={{ style: { textAlign: "center", MozAppearance: "textfield" } }}
                           size="small"
-                          sx={{
-                            width: "50px",
-                            "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
-                              WebkitAppearance: "none",
-                              margin: 0,
-                            },
-                          }}
+                          sx={{ width: 50, input: { textAlign: "center" } }}
                         />
                         <IconButton onClick={() => handleQuantityChange(item.id, item.quantity + 1)} size="small">
                           <AddIcon />
                         </IconButton>
-                        <IconButton color="error" onClick={() => handleRemove(item.id)} sx={{ ml: 2 }}>
+                        <IconButton color="error" onClick={() => handleRemove(item.id)}>
                           <DeleteIcon />
                         </IconButton>
                       </Box>
                     </Grid>
-
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      sx={{ position: "absolute", top: 10, right: 10, textTransform: "none" }}
-                    >
-                      Save for Later
-                    </Button>
                   </Grid>
                 </Card>
               ))
             )}
           </Grid>
+
           {cartItems.length > 0 && (
             <Grid item xs={12} md={4}>
-              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                <Card sx={{ p: 3, boxShadow: 3, width: "350px", position: "sticky", top: "80px" }}>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2 }}>
-                    Delivery Address
-                  </Typography>
-                  <Box sx={{ mb: 3, p: 2, border: "1px solid", borderColor: "grey.300", borderRadius: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                      {deliveryAddress?.full_name || "Name not provided"}
-                    </Typography>
-                    <Typography variant="body2">
-                      {deliveryAddress
-                        ? `${deliveryAddress.address_line1}, ${deliveryAddress.city}, ${deliveryAddress.state} - ${deliveryAddress.postal_code}`
-                        : "Address not provided"}
-                    </Typography>
-                    <Typography variant="body2">{deliveryAddress?.country || "Country not provided"}</Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      Phone: {deliveryAddress?.mobile_number || "Phone not provided"}
-                    </Typography>
-                  </Box>
-
-                  <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                    Price Details
-                  </Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body1">Subtotal</Typography>
-                    <Typography variant="body1">{formatRupees(totalPrice + totalDiscount)}</Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body1" color="success.main">
-                      Discount Applied
-                    </Typography>
-                    <Typography variant="body1" color="success.main">
-                      -{formatRupees(totalDiscount)}
-                    </Typography>
-                  </Box>
-                  <Divider sx={{ my: 1 }} />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                      Total Amount
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                      {formatRupees(totalPrice)}
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    sx={{ mt: 2, textTransform: "none" }}
-                    onClick={handleProceed}
-                  >
-                    Proceed to Buy
-                  </Button>
-                </Card>
-              </Box>
+              <Card sx={{ p: 3, boxShadow: 3, position: "sticky", top: 80 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                  Delivery Address
+                </Typography>
+                {deliveryAddress && (
+                  <Paper sx={{ p: 2, mb: 2 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                      <Typography fontWeight="bold">{deliveryAddress.full_name}</Typography>
+                      <IconButton onClick={() => {
+                        setEditingAddress(deliveryAddress);
+                        setDialogOpen(true);
+                      }}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    <Typography>{deliveryAddress.address_line1}</Typography>
+                    {deliveryAddress.address_line2 && <Typography>{deliveryAddress.address_line2}</Typography>}
+                    <Typography>{`${deliveryAddress.city}, ${deliveryAddress.state} ${deliveryAddress.postal_code}`}</Typography>
+                    <Typography>{deliveryAddress.country}</Typography>
+                    <Typography>{`Contact: ${deliveryAddress.mobile_number}`}</Typography>
+                  </Paper>
+                )}
+                <Typography variant="h6" fontWeight="bold">Price Details</Typography>
+                <Divider sx={{ my: 1 }} />
+                <Box display="flex" justifyContent="space-between">
+                  <Typography>Subtotal</Typography>
+                  <Typography>{formatRupees(totalPrice + totalDiscount)}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography color="success.main">Discount</Typography>
+                  <Typography color="success.main">-{formatRupees(totalDiscount)}</Typography>
+                </Box>
+                <Divider sx={{ my: 1 }} />
+                <Box display="flex" justifyContent="space-between" mb={2}>
+                  <Typography fontWeight="bold">Total</Typography>
+                  <Typography fontWeight="bold">{formatRupees(totalPrice)}</Typography>
+                </Box>
+                <Button variant="contained" color="primary" fullWidth onClick={handleProceed}>
+                  Proceed to Pay
+                </Button>
+              </Card>
             </Grid>
           )}
         </Grid>
+      )}
+
+      {editingAddress && (
+        <EditAddressDialog
+          open={dialogOpen}
+          address={editingAddress}
+          onClose={() => setDialogOpen(false)}
+          onSave={(updated) => {
+            setDeliveryAddress(updated);
+            setDialogOpen(false);
+            handleUpdateAddress(updated);
+          }}
+        />
       )}
     </Container>
   );
 };
 
 export default CartComponent;
+
+// --- EditAddressDialog Component ---
+const EditAddressDialog = ({ open, address, onClose, onSave }) => {
+  const [form, setForm] = useState({ ...address });
+
+  useEffect(() => {
+    setForm({ ...address });
+  }, [address]);
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth>
+      <DialogTitle>Edit Address</DialogTitle>
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+        <TextField label="Full Name" value={form.full_name} onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))} fullWidth />
+        <TextField label="Address Line 1" value={form.address_line1} onChange={(e) => setForm((prev) => ({ ...prev, address_line1: e.target.value }))} fullWidth />
+        <TextField label="Address Line 2" value={form.address_line2} onChange={(e) => setForm((prev) => ({ ...prev, address_line2: e.target.value }))} fullWidth />
+        <TextField label="City" value={form.city} onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))} fullWidth />
+        <TextField label="State" value={form.state} onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))} fullWidth />
+        <TextField label="Postal Code" value={form.postal_code} onChange={(e) => setForm((prev) => ({ ...prev, postal_code: e.target.value }))} fullWidth />
+        <TextField label="Country" value={form.country} onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))} fullWidth />
+        <TextField label="Mobile Number" value={form.mobile_number} onChange={(e) => setForm((prev) => ({ ...prev, mobile_number: e.target.value }))} fullWidth />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={() => onSave(form)}>
+          Save
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

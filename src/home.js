@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ParticlesBackground from "./background/ParticlesBackground";
 import {
   Box,
   Typography,
@@ -103,7 +104,7 @@ const Home = () => {
   };
 
   return (
-    <Box sx={{ width: "100%", overflowX: "hidden" }}>
+    <Box sx={{ width: "100%", overflowX: "hidden" }}><ParticlesBackground />
       {/* Hero Section */}
       <Box
         sx={{
